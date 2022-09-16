@@ -39,7 +39,13 @@ def f1() :
     print("file : \n" + f)
     while len(f) > 0 :
         token , f = getToken(f)
-        STACK.append(token)
+        if isString(token) : 
+            newToken , f = getToken(f)
+            if newToken != '=' : 
+                log(LOG_WARNING ,"Equal not received.")
+            else : 
+                value = getRValue(f)
+            VARIABLES[token] = value
     log(LOG_DEBUG ,  "tokens : " + str(STACK) )
 
 def read_file(filename) :
@@ -99,7 +105,7 @@ def getToken(contents):
 
 
 
-def getRValue():
+def getRValue(f):
     log(LOG_VERBOSE , "Getting RValue")
 
 def isRValue(token):
