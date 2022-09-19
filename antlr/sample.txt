@@ -1,12 +1,4 @@
-987987hhsdasd123asd123ds
-erewr
-werwer
-asdasd "fdsfsf"
-2edsf
-New sample " alpha charlie \" \" \\ "
-
-Yet new sample : "
-This is multi line string 
-with \\ \" escape char. 
-\n\n
-"
+A = 23;
+//end
+A =B.(getvalue(  )  ;
+new //check2

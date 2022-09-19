@@ -3,21 +3,60 @@ grammar test_1;
 /*
  * Parser Rules
  */
-almostAll				: .*?lines.*?EOF ;
+code 				: (lines | block+)+  .*? EOF;
+// Children sequqnces should be greedy in the sense that parser starts from first line.
+// Thus anything before and after "lines" would be matched and parsing will end. catch
+// Tokens out of first "lines" would not be considered because of ".*"
 //text1			:  (rule1 | var)*EOF ;
 //rule1			:  rule1 OTHERS | rule1 var | rule1 string | string ;
 //string			: ('"'(LETTERS)*'"')+ ;
-lines				: lines strings | lines rule1 | strings | rule1 ;
-strings				: '"'(OTHERS | rule1)+'"' ;
-rule1				: var ;
-var					: var LETTERS
-					| var NUMBERS
-					| LETTERS 
-					| LETTERS NUMBERS 
+
+a					: '^'
+					| a ( '^' | OTHERS )+
+					| ( '^' | OTHERS )+ a
+					;
+lines				: lines line+
+					| line+
 					;
 
+assign				: ID OTHERS* EQ OTHERS* ( rvalue)+ OTHERS*;
+
+line				: assign ';'
+					|  OTHERS 
+					| rule1 ';'
+					| rvalue  ';'
+					| CMT
+					;
+
+strings				: STR ;
+
+block				: '{' lines+ '}' ; 
+
+rule1				: member ;
+
+rvalue				: (num | ID | BT | BF | strings | member) ;
+
+/*
+var					: var ID
+					| var NUMBERS
+					| ID 
+					| ID NUMBERS 
+					;
+*/
+member				: ID SEP ( ID | num | BT | BF | strings)+
+					| member SEP ( ID | num | BT | BF | strings)+
+					| ID SEP member
+					| ID emb_fcall
+					| member emb_fcall
+					;
+
+emb_fcall			: SEP '('.*?')' ;
+
+m_pool				: (member)+ ;
+num					: (INT | FLT)+ ;
 
 
+//almostAll				: .*?lines.*?EOF ;
 /*
  * Lexer Rules
  */
@@ -26,13 +65,33 @@ var					: var LETTERS
 	This is test 1 for ANTLR 4 grammar.
 */
 
-T1 					: [a-z] ;
-T2 					: [A-Z] ;
-LETTERS				: (T1|T2)+ ;
-NUMBERS				: [0-9]+ ;
+CMT					: '//'.*?'\n' 
+					| '//'.*? EOF ;
+fragment T1 					: [a-z_] ;
+fragment T2 					: [A-Z] ;
+fragment LETTERS				: (T1|T2)+ ;
+SEP					: '.' ; //stands for seperator.
+EQ					: '=' ;
+P					: '+' ; 
+N					: '-' ;
+M					: '*' ;
+D					: '/' ;
+OB					: '(' ;
+CB					: ')' ;
+OC					: '{' ;
+CC					: '}' ;
+OS					: '[' ;
+CS					: ']' ;
+BT					: 'true'	;			// Boolean true
+BF					: 'false'	;			// Boolean false
+INT					: [0-9]+ ;
 OTHERS				: [ \n\t\r]+ ;
-FLT					: NUMBERS '.' NUMBERS | NUMBERS;
-STR					: '"' ('\\"' | . )*? '"'; 
+FLT					: INT '.' INT ;
+fragment ESC		: '\\\\' | '\\"' ;
+STR					: '"' (ESC | . )*? '"' ; 
+ID					: LETTERS  (LETTERS | INT)* ;
+// ERR_ID				: INT (LETTERS | INT)* ;
+EXP					: '^'; 
 // STRING			: ".*?(?!\\\")."     <-- This is regex for string for reference
 //QUOTE				: '"';
 
