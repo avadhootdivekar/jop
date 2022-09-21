@@ -3,7 +3,7 @@ import os
 OPS_SP_CHARS = ['.' , '+' , '-' , '*' , '/' , '\"' , '\\' , '<' , '>' , '=' , '{' , '}' , '(' , ')' , ' ' , '\n']
 KEYWORDS = ["value" , "key" , "true" , "false" , "zero" , "null"]
 STACK = []
-VARIABLES = []
+VARIABLES = {}
 
 LOG_ERROR               = 1
 LOG_WARNING             = 2
@@ -37,6 +37,7 @@ def f1() :
     print ("Hello world.")
     f = read_file("sample.txt")
     print("file : \n" + f)
+    value = 0
     while len(f) > 0 :
         token , f = getToken(f)
         if isString(token) : 

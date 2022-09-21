@@ -3,7 +3,7 @@ grammar test_1;
 /*
  * Parser Rules
  */
-code 				: (lines | block+)+  .*? EOF;
+code 				: (lines | block+)+  EOF;
 // Children sequqnces should be greedy in the sense that parser starts from first line.
 // Thus anything before and after "lines" would be matched and parsing will end. catch
 // Tokens out of first "lines" would not be considered because of ".*"
@@ -19,22 +19,21 @@ lines				: lines line+
 					| line+
 					;
 
-assign				: ID OTHERS* EQ OTHERS* ( rvalue)+ OTHERS*;
+assign				: ID OTHERS* EQ OTHERS* ( rvalue) OTHERS*;
 
 line				: assign ';'
 					|  OTHERS 
-					| rule1 ';'
 					| rvalue  ';'
 					| CMT
 					;
 
 strings				: STR ;
 
-block				: '{' lines+ '}' ; 
+block				: '{' (lines | block | OTHERS)+ '}' ; 
 
 rule1				: member ;
 
-rvalue				: (num | ID | BT | BF | strings | member) ;
+rvalue				: (num | id_ | bt | bf | strings | member | fcall) ;
 
 /*
 var					: var ID
@@ -50,10 +49,16 @@ member				: ID SEP ( ID | num | BT | BF | strings)+
 					| member emb_fcall
 					;
 
-emb_fcall			: SEP '('.*?')' ;
-
+emb_fcall			: SEP match_b ;
+id_					: ID ;
+bt					: BT ;
+bf 					: BF ;
+fcall				: ID match_b;
+match_b				: '(' (match_b | rvalue|OTHERS)* ')' ;
 m_pool				: (member)+ ;
-num					: (INT | FLT)+ ;
+num					: (INT | FLT) ;
+
+statement			: (rvalue | fcall );
 
 
 //almostAll				: .*?lines.*?EOF ;

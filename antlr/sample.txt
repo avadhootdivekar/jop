@@ -1,4 +1,7 @@
+f(new(34));
 A = 23;
 //end
-A =B.(getvalue(  )  ;
-new //check2
+
+A = B.( getvalue2()  )  ;
+A = B.( getvalue( ) ) ;
+//check2

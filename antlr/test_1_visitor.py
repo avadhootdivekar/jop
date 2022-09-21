@@ -6,6 +6,10 @@ from test_1Parser import test_1Parser
 from test_1Listener import test_1Listener
 from test_1Visitor import test_1Visitor
 
+gVarMap={}
+gFunMap={}
+ASSIGNMENT          = "assign"
+DEFAULT             = "default"
 
 def run_1 (argv):
     print("Hello world!!")
@@ -14,8 +18,11 @@ def run_1 (argv):
     tokens = antlr4.CommonTokenStream(lexer)
     parser =  test_1Parser(tokens)
     tree = parser.code()
+    root_2 = parser.match_b()
     context = tree
 
+    gVarMap["A"] = 32
+    gVarMap["new"] = 1030
     for token in tokens.tokens :
         print("Tokens : " + str(token))
     #listener = test_1Listener()
@@ -24,19 +31,24 @@ def run_1 (argv):
     walker = antlr4.ParseTreeWalker()
     walker.DEFAULT.walk(listener , tree)
     print("\n\ncontext : " + str(context))
-    c = tree.getChildren()
+    c = tree.getChild(0)
     count = tree.getChildCount()
     #s = Trees.ToStringtree(tree , None , parser)
-    print("children : " + str(c) + " , count : " + str(count) )
+    print("children : " + str(c.getChild(2).getText()) + " , count : " + str(count) )
     # for i in range(count) : 
     #     print("Child " + str(i) + " : " + str(tree.getChild(i).getText() )  )
-    print("Tree : " + tree.getText())
+    print("Tree : " + (tree.getText()) )
     print("Trees : " + str(Trees))
     print("\n\n")
+    visitor = customVisitor()
+    visitor.visit(root_2)
+    visitor.visit(tree)
     return
 
 
 class customListener(test_1Listener): 
+    def commonListener(self , ctx) :
+        return
 
     def enterRule1(self, ctx: test_1Parser.Rule1Context):
         # global walker
@@ -94,10 +106,10 @@ class customListener(test_1Listener):
         print("customListener emb_fcall : " + abc)
         return super().enterEmb_fcall(ctx)
 
-    def enterBrack_rnd(self, ctx: test_1Parser.Brack_rndContext):
+    def enterMatch_b(self, ctx: test_1Parser.Match_bContext):
         abc = ctx.getText()
-        print("customListener brack_rnd : " + abc)
-        return super().enterBrack_rnd(ctx)
+        print("customListener match_b : " + abc)
+        return super().enterMatch_b(ctx)
 
     def enterBlock(self, ctx: test_1Parser.BlockContext):
         abc = ctx.getText()
@@ -113,5 +125,88 @@ class customListener(test_1Listener):
         abc = ctx.getText()
         print("customListener rvalue : " + abc)
         return super().enterRvalue(ctx)
+
+
+
+class customVisitor(test_1Visitor):
+    def visitMatch_b(self, ctx: test_1Parser.Match_bContext , parent_type=DEFAULT):
+        self.commonVisitor(ctx , "match_b")
+        return super().visitMatch_b(ctx) 
+    
+    def visitLines(self, ctx: test_1Parser.LinesContext , parent_type=DEFAULT):
+        self.commonVisitor(ctx , "Lines")
+        print("visitor count : " + str(ctx.getChildCount()) )
+        # self.visit()
+        return super().visitLines(ctx)
+
+    def visitAssign(self, ctx: test_1Parser.AssignContext , parent_type=DEFAULT):
+        self.commonVisitor(ctx , "Assign")
+        count = ctx.getChildCount()
+        if str(ctx.ID()) in gVarMap:
+            print("Assignment variable already declared.")
+        value = ctx.rvalue().accept(self)
+        print("Derived rvalue : " + str(value) )
+        # for i in range(0,count):
+        #     if ctx.getChild(i).accept(self , parent_type=ASSIGNMENT):
+        #         print("Accepted..")
+        return super().visitAssign(ctx)
+
+    def visitCode(self, ctx: test_1Parser.CodeContext , parent_type=DEFAULT):
+        self.commonVisitor(ctx , "Code")
+        return super().visitCode(ctx)
+
+    def visitId_(self, ctx: test_1Parser.Id_Context , parent_type=DEFAULT):
+        self.commonVisitor(ctx, "id")
+        if ctx.getText() in gVarMap:
+            print("varMap : " + str(gVarMap[ctx.getText()]))
+            return gVarMap[ctx.getText()]
+        else : 
+            print("variable not in map.")
+        
+    def visitRvalue(self, ctx: test_1Parser.RvalueContext , parent_type=DEFAULT):
+        print("Non need to explicitly implement the rvalue, as rvalue would just call one of the OR'd methods.")
+        return super().visitRvalue(ctx)
+
+    def visitNum(self, ctx: test_1Parser.NumContext , parent_type=DEFAULT):
+        # self.commonVisitor(self, "num")
+        return str(ctx.INT())
+
+    def visitBt(self, ctx: test_1Parser.BtContext , parent_type=DEFAULT):
+        return True;
+
+    def visitBf(self, ctx: test_1Parser.BfContext , parent_type=DEFAULT):
+        return False
+
+    
+    def commonVisitor(self, ctx  , ruleName):
+        abc = ctx.getText()
+        count = ctx.getChildCount()
+        # print("visitor  :" + ruleName +" : " + abc + " ,  child count : " + str(count)  )        
+        if (count > 0) : 
+            for i in range(0,count) : 
+                c = ctx.getChild(i)
+                c.accept(self)
+                # print("done with " + str(c.getText()) )
+
+        else : 
+            print("This is termilnal node..")
+
+
+def isFunction(param):
+    if param in gFunMap:
+        return True
+    else :
+        return False
+
+
+def isVariable(param):
+    if param in gVarMap:
+        return True
+    else :
+        return False
+
+
+
 run_1(sys.argv)
+
 
