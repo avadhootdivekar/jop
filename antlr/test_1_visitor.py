@@ -1,6 +1,17 @@
 import antlr4
 import sys
 from antlr4.tree.Trees import Trees
+
+
+LOG_ERROR               = 1
+LOG_WARNING             = 2
+LOG_INFO                = 3
+LOG_DEBUG               = 4
+LOG_VERBOSE             = 5
+LOG_FILTER_LEVEL        = 5
+
+
+
 from test_1Lexer import test_1Lexer
 from test_1Parser import test_1Parser
 from test_1Listener import test_1Listener
@@ -11,7 +22,10 @@ gFunMap={}
 ASSIGNMENT          = "assign"
 DEFAULT             = "default"
 
-def run_1 (argv):
+def logFallBack(level=0, str=""):
+    print(str)
+
+def run_1 (argv , log=logFallBack) :
     print("Hello world!!")
     inp = antlr4.FileStream(argv[1])
     lexer = test_1Lexer(inp)
@@ -34,11 +48,11 @@ def run_1 (argv):
     c = tree.getChild(0)
     count = tree.getChildCount()
     #s = Trees.ToStringtree(tree , None , parser)
-    print("children : " + str(c.getChild(2).getText()) + " , count : " + str(count) )
+    # print("children : " + str(c.getChild(2).getText()) + " , count : " + str(count) )
     # for i in range(count) : 
     #     print("Child " + str(i) + " : " + str(tree.getChild(i).getText() )  )
-    print("Tree : " + (tree.getText()) )
-    print("Trees : " + str(Trees))
+    log(LOG_DEBUG , "Tree : " + (tree.getText()) )
+    log(LOG_DEBUG , "Trees : " + str(Trees))
     print("\n\n")
     visitor = customVisitor()
     visitor.visit(root_2)
@@ -101,11 +115,6 @@ class customListener(test_1Listener):
         print("customListener assign : " + abc)
         return super().enterAssign(ctx)
 
-    def enterEmb_fcall(self, ctx: test_1Parser.Emb_fcallContext):
-        abc = ctx.getText()
-        print("customListener emb_fcall : " + abc)
-        return super().enterEmb_fcall(ctx)
-
     def enterMatch_b(self, ctx: test_1Parser.Match_bContext):
         abc = ctx.getText()
         print("customListener match_b : " + abc)
@@ -139,13 +148,24 @@ class customVisitor(test_1Visitor):
         # self.visit()
         return super().visitLines(ctx)
 
+    def visitList_(self, ctx: test_1Parser.List_Context):
+        self.commonVisitor(ctx , "LIST_")
+        return super().visitList_(ctx)
+
+    def visitCurly(self, ctx: test_1Parser.CurlyContext):
+        self.commonVisitor(ctx , "  CURLY : ")
+        return super().visitCurly(ctx)
+
     def visitAssign(self, ctx: test_1Parser.AssignContext , parent_type=DEFAULT):
         self.commonVisitor(ctx , "Assign")
         count = ctx.getChildCount()
         if str(ctx.ID()) in gVarMap:
             print("Assignment variable already declared.")
-        value = ctx.rvalue().accept(self)
-        print("Derived rvalue : " + str(value) )
+        try:
+            value = ctx.rvalue().accept(self)
+            print("Derived rvalue : " + str(value) )
+        except:
+        	print("Failed..")
         # for i in range(0,count):
         #     if ctx.getChild(i).accept(self , parent_type=ASSIGNMENT):
         #         print("Accepted..")
@@ -181,7 +201,7 @@ class customVisitor(test_1Visitor):
     def commonVisitor(self, ctx  , ruleName):
         abc = ctx.getText()
         count = ctx.getChildCount()
-        # print("visitor  :" + ruleName +" : " + abc + " ,  child count : " + str(count)  )        
+        print("visitor  :" + ruleName +" : " + abc + " ,  child count : " + str(count)  )        
         if (count > 0) : 
             for i in range(0,count) : 
                 c = ctx.getChild(i)
@@ -206,7 +226,9 @@ def isVariable(param):
         return False
 
 
-
-run_1(sys.argv)
+if __name__ == "__main__"  :
+    run_1(sys.argv)
+else :
+    run_1(["test_1_visitor.py","sample.txt"] )
 
 

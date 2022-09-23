@@ -1,4 +1,7 @@
-import os 
+import os
+import sys
+sys.path.append("/home/container/mounted/jop_repo/antlr") 
+import test_1_visitor
 
 OPS_SP_CHARS = ['.' , '+' , '-' , '*' , '/' , '\"' , '\\' , '<' , '>' , '=' , '{' , '}' , '(' , ')' , ' ' , '\n']
 KEYWORDS = ["value" , "key" , "true" , "false" , "zero" , "null"]
@@ -48,6 +51,8 @@ def f1() :
                 value = getRValue(f)
             VARIABLES[token] = value
     log(LOG_DEBUG ,  "tokens : " + str(STACK) )
+    log(LOG_INFO , "\n\nf1() Done.\n\n")
+    test_1_visitor.run_1(["test_1_visitor.py","sample.txt"], log)
 
 def read_file(filename) :
     file_handle = open(filename , "r")

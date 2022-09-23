@@ -12,54 +12,62 @@ code 				: (lines | block+)+  EOF;
 //string			: ('"'(LETTERS)*'"')+ ;
 
 a					: '^'
-					| a ( '^' | OTHERS )+
-					| ( '^' | OTHERS )+ a
+					| a ( '^' )+
+					| ( '^' )+ a
 					;
 lines				: lines line+
 					| line+
 					;
 
-assign				: ID OTHERS* EQ OTHERS* ( rvalue) OTHERS*;
+assign				: ID  EQ  ( rvalue)  ;
 
-line				: assign ';'
-					|  OTHERS 
-					| rvalue  ';'
-					| CMT
+line				: ( assign ';' 	)
+					| ( rvalue  ';'	)
+					| ( CMT			)
 					;
 
 strings				: STR ;
 
-block				: '{' (lines | block | OTHERS)+ '}' ; 
+block				: '{' (lines | block )+ '}' ; 
 
 rule1				: member ;
 
-rvalue				: (num | id_ | bt | bf | strings | member | fcall) ;
+rvalue				: (uid | member | fcall | match_b | curly | list_ | expr) ;
 
-/*
-var					: var ID
-					| var NUMBERS
-					| ID 
-					| ID NUMBERS 
-					;
-*/
-member				: ID SEP ( ID | num | BT | BF | strings)+
-					| member SEP ( ID | num | BT | BF | strings)+
-					| ID SEP member
-					| ID emb_fcall
-					| member emb_fcall
+member				: ( ID SEP ((member_candidate ) | member)			)
+					| ( ID all_depth						)
 					;
 
-emb_fcall			: SEP match_b ;
+member_candidate	: (uid | match_b | M );
+
+/* uid are unique identifiers. These can be vars,numbers, strings or even function names without branckets etc. */ 
+uid					: (num | id_ | bt | bf | strings) ;
 id_					: ID ;
 bt					: BT ;
 bf 					: BF ;
 fcall				: ID match_b;
-match_b				: '(' (match_b | rvalue|OTHERS)* ')' ;
+match_b				: '(' (match_b | rvalue | getParent)* ')' ;
 m_pool				: (member)+ ;
 num					: (INT | FLT) ;
-
+all_depth			: SEP SEP ;
 statement			: (rvalue | fcall );
+curly				: ( OC curly (',' curly)* CC 	)
+					| ( OC pair (',' pair)* CC		) 
+ 					| ( OC curly (',' pair)* CC  	)
+					| ( OC pair (',' curly)* CC  	) ;
 
+list_				: ( OS pair (',' pair|curly )* CS )
+					| ( OS curly (',' curly|pair )* CS )
+					| (OS CS)
+					;
+
+expr				: ( (num | match_b)  math_b_op expr) 
+					| num | match_b ;
+
+math_b_op			: (P | N | M | D ) ;
+math_u_op			: (P P | N N ) ;
+getParent			: SEP '<' ;
+pair				: uid ':'  (uid | curly | list_ ) ;
 
 //almostAll				: .*?lines.*?EOF ;
 /*
@@ -75,6 +83,8 @@ CMT					: '//'.*?'\n'
 fragment T1 					: [a-z_] ;
 fragment T2 					: [A-Z] ;
 fragment LETTERS				: (T1|T2)+ ;
+fragment ESC		: '\\\\' | '\\"' ;
+J_LIT				: '"""' (ESC | . )*? '"""' ;
 SEP					: '.' ; //stands for seperator.
 EQ					: '=' ;
 P					: '+' ; 
@@ -90,14 +100,14 @@ CS					: ']' ;
 BT					: 'true'	;			// Boolean true
 BF					: 'false'	;			// Boolean false
 INT					: [0-9]+ ;
-OTHERS				: [ \n\t\r]+ ;
+OTHERS				: [ \n\t\r]+ -> skip;
 FLT					: INT '.' INT ;
-fragment ESC		: '\\\\' | '\\"' ;
 STR					: '"' (ESC | . )*? '"' ; 
 ID					: LETTERS  (LETTERS | INT)* ;
 // ERR_ID				: INT (LETTERS | INT)* ;
 EXP					: '^'; 
 // STRING			: ".*?(?!\\\")."     <-- This is regex for string for reference
 //QUOTE				: '"';
+MCMT				: '/*' .*? '*/' ;
 
 
