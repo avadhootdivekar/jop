@@ -1,3 +1,4 @@
+from mimetypes import common_types
 import antlr4
 import sys
 from antlr4.tree.Trees import Trees
@@ -9,7 +10,9 @@ LOG_INFO                = 3
 LOG_DEBUG               = 4
 LOG_VERBOSE             = 5
 LOG_FILTER_LEVEL        = 5
-
+SEPERATOR               = '''
+------------------------------------------------------------------------------------
+'''
 
 
 from test_1Lexer import test_1Lexer
@@ -22,8 +25,11 @@ gFunMap={}
 ASSIGNMENT          = "assign"
 DEFAULT             = "default"
 
+
 def logFallBack(level=0, str=""):
     print(str)
+
+log = logFallBack
 
 def run_1 (argv , log=logFallBack) :
     print("Hello world!!")
@@ -35,8 +41,6 @@ def run_1 (argv , log=logFallBack) :
     root_2 = parser.match_b()
     context = tree
 
-    gVarMap["A"] = 32
-    gVarMap["new"] = 1030
     for token in tokens.tokens :
         print("Tokens : " + str(token))
     #listener = test_1Listener()
@@ -57,6 +61,7 @@ def run_1 (argv , log=logFallBack) :
     visitor = customVisitor()
     visitor.visit(root_2)
     visitor.visit(tree)
+    print(SEPERATOR + "gVarMap : " + str(gVarMap))
     return
 
 
@@ -154,16 +159,66 @@ class customVisitor(test_1Visitor):
 
     def visitCurly(self, ctx: test_1Parser.CurlyContext):
         self.commonVisitor(ctx , "  CURLY : ")
+        v = {}
+        if ctx.curly() != None :
+            for i in range(len(ctx.curly())):
+                log(LOG_ERROR , "Getting curly " + str(i))
+                v = v | ctx.curly(i).accept(self)
+        if ctx.pair() != None : 
+            for i in range(len(ctx.pair())) : 
+                log(LOG_ERROR , "Getting pair " + str(i) )
+                temp_k , temp_v = ctx.pair(i).accept(self)
+                v = v | {temp_k : temp_v}
+        log(LOG_ERROR , "value for curly : " + str(v) )
         return super().visitCurly(ctx)
+
+    def visitPair(self, ctx: test_1Parser.PairContext):
+        self.commonVisitor(ctx, " PAIR : ")
+        k = None
+        v = None
+        if ctx.uid(0) == None:
+            log(LOG_ERROR , "UID not found in pair.")
+        k = ctx.uid(0).accept(self)
+
+        if (ctx.uid(1) != None):
+            log(LOG_DEBUG , "uid value for pair")
+            v = ctx.uid(1).accept(self)
+        elif (ctx.list_(0) != None ) :
+            log(LOG_DEBUG , "curly value for pair")
+            v = ctx.list_(0).accept(self)
+        elif (ctx.curly(0) != None ) :
+            log(LOG_DEBUG , "list value for pair")
+            v = ctx.curly(0).accept(self)
+        log(LOG_ERROR , "pair key : " + str(k) + " , v : " + str(v) )
+        return k , v
+
+    def visitUid(self, ctx: test_1Parser.UidContext):
+        self.commonVisitor(ctx , "UID")
+        v = None
+        if (ctx.num() != None):
+            v = ctx.num().accept(self)
+        elif (ctx.id_() != None) :
+            v = ctx.id_().accept(self)
+        elif (ctx.bt() != None):
+            v = ctx.bt().accept(self)
+        elif (ctx.bf() != None):
+            v = ctx.bf().accept(self)
+        elif (ctx.strings() != None):
+            v = ctx.strings().accept(self)
+        log(LOG_DEBUG , "UID value : " + str(v) )
+        return v
 
     def visitAssign(self, ctx: test_1Parser.AssignContext , parent_type=DEFAULT):
         self.commonVisitor(ctx , "Assign")
+        value = None
         count = ctx.getChildCount()
-        if str(ctx.ID()) in gVarMap:
+        varName = str(ctx.ID())
+        if varName in gVarMap:
             print("Assignment variable already declared.")
         try:
             value = ctx.rvalue().accept(self)
             print("Derived rvalue : " + str(value) )
+            gVarMap[varName] = ctx.rvalue().accept(self)
         except:
         	print("Failed..")
         # for i in range(0,count):
@@ -177,11 +232,13 @@ class customVisitor(test_1Visitor):
 
     def visitId_(self, ctx: test_1Parser.Id_Context , parent_type=DEFAULT):
         self.commonVisitor(ctx, "id")
-        if ctx.getText() in gVarMap:
-            print("varMap : " + str(gVarMap[ctx.getText()]))
-            return gVarMap[ctx.getText()]
+        text = str(ctx.ID())
+        if text in gVarMap:
+            print("varMap : " + str(gVarMap[text]))
+            return gVarMap[text]
         else : 
-            print("variable not in map.")
+            log(LOG_DEBUG , "variable not in map : " + text)
+        return text
         
     def visitRvalue(self, ctx: test_1Parser.RvalueContext , parent_type=DEFAULT):
         print("Non need to explicitly implement the rvalue, as rvalue would just call one of the OR'd methods.")
@@ -189,7 +246,17 @@ class customVisitor(test_1Visitor):
 
     def visitNum(self, ctx: test_1Parser.NumContext , parent_type=DEFAULT):
         # self.commonVisitor(self, "num")
-        return str(ctx.INT())
+        num = 0
+        if ctx.INT() != None : 
+            num = int(str(ctx.INT()))
+        else : 
+            num = float(str(ctx.FLT()))
+        log(LOG_DEBUG , "NUM : " + str(num))
+        return (num)
+
+    def visitStrings(self, ctx: test_1Parser.StringsContext):
+        self.commonVisitor(ctx , "String")
+        return str(ctx.STR())
 
     def visitBt(self, ctx: test_1Parser.BtContext , parent_type=DEFAULT):
         return True;
@@ -202,14 +269,17 @@ class customVisitor(test_1Visitor):
         abc = ctx.getText()
         count = ctx.getChildCount()
         print("visitor  :" + ruleName +" : " + abc + " ,  child count : " + str(count)  )        
-        if (count > 0) : 
-            for i in range(0,count) : 
-                c = ctx.getChild(i)
-                c.accept(self)
-                # print("done with " + str(c.getText()) )
+        try:
+            if (count > 0) : 
+                for i in range(0,count) : 
+                    c = ctx.getChild(i)
+                    c.accept(self)
+                    # print("done with " + str(c.getText()) )
 
-        else : 
-            print("This is termilnal node..")
+            else : 
+                print("This is termilnal node..")
+        except:
+            log(LOG_ERROR , "Exception in common visitor..")
 
 
 def isFunction(param):
