@@ -60,8 +60,8 @@ def run_1 (argv , log=logFallBack) :
     print("\n\n")
     visitor = customVisitor()
     visitor.visit(root_2)
-    visitor.visit(tree)
-    print(SEPERATOR + "gVarMap : " + str(gVarMap))
+    p = visitor.visit(tree)
+    print(SEPERATOR + "gVarMap : " + str(gVarMap) + "\nvisitor return : p:" + str(p) )
     return
 
 
@@ -155,7 +155,19 @@ class customVisitor(test_1Visitor):
 
     def visitList_(self, ctx: test_1Parser.List_Context):
         self.commonVisitor(ctx , "LIST_")
-        return super().visitList_(ctx)
+        v = []
+        count = ctx.getChildCount()
+        # log(LOG_DEBUG , "list tokens : " + str(ctx.getTokens()))
+        for i in range(count-1):
+            if i==0:
+                # Skip Opening and closing brackets.
+                continue;
+            node = ctx.getChild(i)
+            log(LOG_DEBUG , "list node : " + node.getText())
+            if (node.accept(self) != None):
+                v.append(node.accept(self))
+        log(LOG_DEBUG , "Final derived list : " + str(v))
+        return v
 
     def visitCurly(self, ctx: test_1Parser.CurlyContext):
         self.commonVisitor(ctx , "  CURLY : ")
@@ -169,8 +181,8 @@ class customVisitor(test_1Visitor):
                 log(LOG_ERROR , "Getting pair " + str(i) )
                 temp_k , temp_v = ctx.pair(i).accept(self)
                 v = v | {temp_k : temp_v}
-        log(LOG_ERROR , "value for curly : " + str(v) )
-        return super().visitCurly(ctx)
+        log(LOG_ERROR , "value for curly : " + str(v)  + " , where actual text : " + ctx.getText())
+        return v
 
     def visitPair(self, ctx: test_1Parser.PairContext):
         self.commonVisitor(ctx, " PAIR : ")
@@ -183,12 +195,12 @@ class customVisitor(test_1Visitor):
         if (ctx.uid(1) != None):
             log(LOG_DEBUG , "uid value for pair")
             v = ctx.uid(1).accept(self)
-        elif (ctx.list_(0) != None ) :
+        elif (ctx.list_() != None ) :
             log(LOG_DEBUG , "curly value for pair")
-            v = ctx.list_(0).accept(self)
-        elif (ctx.curly(0) != None ) :
+            v = ctx.list_().accept(self)
+        elif (ctx.curly() != None ) :
             log(LOG_DEBUG , "list value for pair")
-            v = ctx.curly(0).accept(self)
+            v = ctx.curly().accept(self)
         log(LOG_ERROR , "pair key : " + str(k) + " , v : " + str(v) )
         return k , v
 
@@ -217,7 +229,7 @@ class customVisitor(test_1Visitor):
             print("Assignment variable already declared.")
         try:
             value = ctx.rvalue().accept(self)
-            print("Derived rvalue : " + str(value) )
+            print("Derived rvalue : " + str(value) + " , for string : " + str(ctx.rvalue().getText()))
             gVarMap[varName] = ctx.rvalue().accept(self)
         except:
         	print("Failed..")
@@ -237,7 +249,7 @@ class customVisitor(test_1Visitor):
             print("varMap : " + str(gVarMap[text]))
             return gVarMap[text]
         else : 
-            log(LOG_DEBUG , "variable not in map : " + text)
+            log(LOG_WARNING , "variable not in map : " + text)
         return text
         
     def visitRvalue(self, ctx: test_1Parser.RvalueContext , parent_type=DEFAULT):

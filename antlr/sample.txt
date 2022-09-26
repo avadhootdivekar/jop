@@ -1,8 +1,9 @@
-D=[ a:b];
-E=[ 34 : 54 ];
-F=[ABC : 34 , EFG : DEF];
+D=[ a,b];
+E=[ 34 , 54 ];
+F=[ABC , 34 , EFG , DEF];
 G = [{ABC : DEF} , {Alpha:delta} , {34:true} ];
-H = [{ABC : DEF} , {Alpha:delta} , {34:true} ,  k1:v1];
+H = [{ABC : DEF} , {Alpha:delta} , {34:true} ,  k1,v1];
+I = {abc : def , hij:klm , 45:false , new : {13:14 , 15:16 , more : {a:b , c:d}}}
 f(new(34));
 A = 23;
 //end
@@ -11,7 +12,7 @@ C="""abcd \" \' \"" \""" trial!""";
 A = B.( getvalue2()  )  ;
 A = B.( getvalue( ) ) ;
 //check2
-D=[]
+//D=[]
 
 /**/
 

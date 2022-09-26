@@ -56,8 +56,8 @@ curly				: ( OC curly (',' curly)* CC 	)
  					| ( OC curly (',' pair)* CC  	)
 					| ( OC pair (',' curly)* CC  	) ;
 
-list_				: ( OS pair (',' pair|curly )* CS )
-					| ( OS curly (',' curly|pair )* CS )
+list_				: ( OS uid (',' uid|curly )* CS )
+					| ( OS curly (',' curly|uid )* CS )
 					| (OS CS)
 					;
 
