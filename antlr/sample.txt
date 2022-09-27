@@ -6,6 +6,7 @@ H = [{ABC : DEF} , {Alpha:delta} , {34:true} ,  k1,v1];
 I = {abc : def , hij:klm , 45:false , new : {13:14 , 15:16 , more : {a:b , c:d}}}
 f(new(34));
 A = 23;
+B="new"
 //end
 C="abcd";
 C="""abcd \" \' \"" \""" trial!""";
@@ -22,4 +23,47 @@ A = B.( getvalue( ) ) ;
 		Some new test as well \* /*
 */
 a=7;
+L={
+	ET:{NH:K} , 
+	TL : {NH:J},
+	FO : {
+		LK : {
+			PR : NO
+			},
+		VK : {
+			PR : JO
+		}
+	} 
+};
+c = L.ET.NH.K
+v="ET"
+e=L."ET"
+f = L.v;
+g = L."ET";
+h=L.*."NH";
 
+
+L2 = {
+	ET:{NH:K} , 
+	TL : {NH:J},
+	FO : {
+		LK : {
+			PR : NO
+			},
+		VK : {
+			PR : JO
+		}
+	},
+	VO : {
+		LK : {
+			PR : {
+				NO : PO
+			}
+		},
+		DK : {
+			PR : BL
+		}
+	}
+};
+
+j = L2.*.*."PR"

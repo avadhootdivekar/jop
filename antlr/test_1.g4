@@ -34,8 +34,9 @@ rule1				: member ;
 
 rvalue				: (uid | member | fcall | match_b | curly | list_ | expr) ;
 
-member				: ( ID SEP ((member_candidate ) | member)			)
+member				: ( ID SEP ((member_candidate ) (SEP member_candidate)* )			)
 					| ( ID all_depth						)
+					| (member_candidate)
 					;
 
 member_candidate	: (uid | match_b | M );

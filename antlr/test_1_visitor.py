@@ -1,4 +1,6 @@
 from mimetypes import common_types
+from statistics import variance
+from syslog import LOG_ERR
 import antlr4
 import sys
 from antlr4.tree.Trees import Trees
@@ -24,10 +26,10 @@ gVarMap={}
 gFunMap={}
 ASSIGNMENT          = "assign"
 DEFAULT             = "default"
+PTYPE_MEMBER        = "member"
 
-
-def logFallBack(level=0, str=""):
-    print(str)
+def logFallBack(level=0, str1="" , tid="000OO"):
+    print( "<< check "+str(tid) + " >> " + str1)
 
 log = logFallBack
 
@@ -242,13 +244,84 @@ class customVisitor(test_1Visitor):
         self.commonVisitor(ctx , "Code")
         return super().visitCode(ctx)
 
+    def visitMember(self, ctx: test_1Parser.MemberContext , parent_type=DEFAULT , parent={}):
+        '''
+        parent type == member , in case we are visiting member of node.
+        parent = dictionary of parent.
+        '''
+        v = None
+        first = ctx.ID()
+        if  first != None:
+            if parent_type == PTYPE_MEMBER:
+                if str(first) in parent:
+                    v = parent[str(first)]
+                else : 
+                    log(LOG_ERROR , "Member '" + str(first) + "' not in parent.")
+            elif parent_type == DEFAULT:
+                if isVariable( str(first) ):
+                    v = gVarMap[str(first)]
+                else : 
+                    log(LOG_ERROR , "Variable '" + str(first) + "' not declared.")
+            else:
+                log(LOG_ERROR , "Unknown parent type. Malformed membership.")
+        parent = v
+        if ctx.member_candidate() != None :
+            success , v = self.evalMember(ctx.member_candidate(0) , memberList=ctx.member_candidate() , parent=parent , depth=0)
+            # for i in range(len(ctx.member_candidate())):
+            #     cand = ctx.member_candidate(i)
+            #     log(LOG_DEBUG , "member candidate ::" +str(i) +" ::" + str(ctx.member_candidate(i).getText()) )
+            #     v = self.visitMember_candidate(ctx.member_candidate(i) , parent_type=PTYPE_MEMBER , parent = parent)
+        elif ctx.member() != None :
+            v = self.visitMember(ctx.member() , parent_type=PTYPE_MEMBER , parent = parent)
+        else : 
+            log(LOG_ERROR , "No member OR member candidate!!")
+        return v
+
+
+    def visitMember_candidate(self, ctx: test_1Parser.Member_candidateContext , parent_type=DEFAULT , parent={}):
+        var = None
+        success = False
+        if ctx.uid() != None:
+            log(LOG_ERROR , "In member candidate , var : " + str(var)  + " , parent : " + str(parent) + " type : " +str(type(parent)) +", uid : " + str(ctx.uid().getText()) )
+            varName = ctx.uid().accept(self)
+            if (parent_type == DEFAULT) : 
+                log(LOG_ERROR , "Unexpected parent type , malformed membership.")
+            elif (parent_type == PTYPE_MEMBER ):
+                if ctx.uid().id_() != None :
+                    present , var = getVar(varName)
+                    k = str(var)
+                    if not present:
+                        log(LOG_ERROR , "Exception !! Member not present.")
+                        return False, {}
+                elif (ctx.uid().strings() != None ):
+                    k = ctx.uid().strings().accept(self)
+                log(LOG_DEBUG , "k : " +k  + " , type : " + str(type(k))  , tid="809kn")
+                if k in parent :
+                    var = parent[k]
+                    success = True
+                    log(LOG_DEBUG , "var : " + str(var) , tid="369ho")
+                else : 
+                    log(LOG_ERROR , "ERR! var : " +  str(var) + " , parent : " +str(parent)   )
+                    success = False
+                var = {k:var}
+        elif ctx.match_b() != None :
+            var = (ctx.match_b().accept(self))
+            success = True
+        elif (ctx.M() != None) :
+            log(LOG_DEBUG , "m cand in all members") 
+            var = parent
+            success = True
+            # for k,v in parent.items():
+                # var.append()
+        log(LOG_DEBUG , "Returning var : " + str(var) + " , success : " + str(success)  ,tid="587uj")
+        return success, var
+
+
     def visitId_(self, ctx: test_1Parser.Id_Context , parent_type=DEFAULT):
         self.commonVisitor(ctx, "id")
         text = str(ctx.ID())
-        if text in gVarMap:
-            print("varMap : " + str(gVarMap[text]))
-            return gVarMap[text]
-        else : 
+        present , var = getVar(text)
+        if not present : 
             log(LOG_WARNING , "variable not in map : " + text)
         return text
         
@@ -268,7 +341,9 @@ class customVisitor(test_1Visitor):
 
     def visitStrings(self, ctx: test_1Parser.StringsContext):
         self.commonVisitor(ctx , "String")
-        return str(ctx.STR())
+        log(LOG_DEBUG , "strings return is : " + str(ctx.STR())[1:-1])
+        # Remove quotes from both the ends..
+        return str(ctx.STR())[1:-1]
 
     def visitBt(self, ctx: test_1Parser.BtContext , parent_type=DEFAULT):
         return True;
@@ -276,7 +351,45 @@ class customVisitor(test_1Visitor):
     def visitBf(self, ctx: test_1Parser.BfContext , parent_type=DEFAULT):
         return False
 
-    
+
+    def evalMember(self , ctx  , memberList , parent = {} , depth = 0):
+        v = {}
+        success = False
+        success1 = False
+        log(LOG_DEBUG , " In evalMember , PARENT : " + str(parent) + " , memberList : " +str(memberList[0].getText()) )
+        if len(memberList) > 1:
+            log(LOG_DEBUG , "Going down a member..") 
+            if memberList[0].M() :
+                log(LOG_DEBUG , "Encountered a * .")
+                for key_each in parent.keys() :
+                    success1 , val =  self.evalMember(ctx , memberList[1:] , parent[key_each] , depth = (depth +1)) 
+                    success = success or success1
+                    log(LOG_DEBUG , "success : " + str(success) + " , val : " +str(val) , tid="254dc"  )
+                    if (success) :
+                        v[key_each] = val
+                    log(LOG_DEBUG , "v : " + str(v) , tid="465kn")
+                success = True
+            elif memberList[0].uid() :
+                varName = memberList[0].uid().getText()
+                present , var = getVar(varName)
+                if present :
+                    if var in parent :
+                        success = True
+                        v = {}
+                        v[var] = parent[var]
+                    else : 
+                        log(LOG_ERROR , "ERR! var : " +(var) + " , parent : " +str(parent)   )
+                        return False, {}
+                success = True
+            elif ( memberList[0].match_b() ) : 
+                log(LOG_WARNING , "match_b not implemented in evalmembers..")
+        else : 
+            log(LOG_DEBUG , "Reached terminal member of member candidates ." + " , memberList : " +str(memberList[0].getText()))
+            success , v = self.visitMember_candidate( memberList[0] , parent_type=PTYPE_MEMBER , parent = parent )
+        log(LOG_DEBUG , "evalMember , PARENT : " + str(parent)+ " , v : " + str(v) + " , success : " + str(success) , tid="976hv")
+        return success, v
+
+
     def commonVisitor(self, ctx  , ruleName):
         abc = ctx.getText()
         count = ctx.getChildCount()
@@ -300,6 +413,12 @@ def isFunction(param):
     else :
         return False
 
+def getVar(param):
+    if isVariable(param):
+        return True , gVarMap[param]
+    else:
+        return False , None
+
 
 def isVariable(param):
     if param in gVarMap:
@@ -308,9 +427,13 @@ def isVariable(param):
         return False
 
 
+
+
 if __name__ == "__main__"  :
     run_1(sys.argv)
 else :
     run_1(["test_1_visitor.py","sample.txt"] )
+
+
 
 
