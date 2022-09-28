@@ -12,6 +12,8 @@ LOG_INFO                = 3
 LOG_DEBUG               = 4
 LOG_VERBOSE             = 5
 LOG_FILTER_LEVEL        = 5
+RET_FAILURE             = -1
+RET_SUCCESS             = 0
 SEPERATOR               = '''
 ------------------------------------------------------------------------------------
 '''
@@ -148,6 +150,20 @@ class customVisitor(test_1Visitor):
     def visitMatch_b(self, ctx: test_1Parser.Match_bContext , parent_type=DEFAULT):
         self.commonVisitor(ctx , "match_b")
         return super().visitMatch_b(ctx) 
+
+    def visitMath_b_op(self, ctx: test_1Parser.Math_b_opContext):
+        val = ""
+        if ctx.P() != None:
+            val = "+"
+        elif ctx.N() != None:
+            val = "-"
+        elif ctx.M() != None:
+            val = "*"
+        elif ctx.D() != None:
+            val = "/"
+        if val =="" :
+            log(LOG_WARNING , "Unexpected binary operator. " , tid="100af")
+        return val
     
     def visitLines(self, ctx: test_1Parser.LinesContext , parent_type=DEFAULT):
         self.commonVisitor(ctx , "Lines")
@@ -209,18 +225,21 @@ class customVisitor(test_1Visitor):
     def visitUid(self, ctx: test_1Parser.UidContext):
         self.commonVisitor(ctx , "UID")
         v = None
+        retCode = RET_FAILURE
         if (ctx.num() != None):
-            v = ctx.num().accept(self)
+            retCode , v = ctx.num().accept(self)
         elif (ctx.id_() != None) :
-            v = ctx.id_().accept(self)
+            retCode , v = ctx.id_().accept(self)
         elif (ctx.bt() != None):
-            v = ctx.bt().accept(self)
+            retCode , v = ctx.bt().accept(self)
         elif (ctx.bf() != None):
-            v = ctx.bf().accept(self)
+            retCode , v = ctx.bf().accept(self)
         elif (ctx.strings() != None):
-            v = ctx.strings().accept(self)
+            retCode , v = ctx.strings().accept(self)
+        else:
+            retCode = RET_FAILURE
         log(LOG_DEBUG , "UID value : " + str(v) )
-        return v
+        return retCode, v
 
     def visitAssign(self, ctx: test_1Parser.AssignContext , parent_type=DEFAULT):
         self.commonVisitor(ctx , "Assign")
@@ -281,9 +300,10 @@ class customVisitor(test_1Visitor):
     def visitMember_candidate(self, ctx: test_1Parser.Member_candidateContext , parent_type=DEFAULT , parent={}):
         var = None
         success = False
+        retCode = RET_FAILURE;
         if ctx.uid() != None:
             log(LOG_ERROR , "In member candidate , var : " + str(var)  + " , parent : " + str(parent) + " type : " +str(type(parent)) +", uid : " + str(ctx.uid().getText()) )
-            varName = ctx.uid().accept(self)
+            retCode, varName = ctx.uid().accept(self)
             if (parent_type == DEFAULT) : 
                 log(LOG_ERROR , "Unexpected parent type , malformed membership.")
             elif (parent_type == PTYPE_MEMBER ):
@@ -301,7 +321,7 @@ class customVisitor(test_1Visitor):
                     success = True
                     log(LOG_DEBUG , "var : " + str(var) , tid="369ho")
                 else : 
-                    log(LOG_ERROR , "ERR! var : " +  str(var) + " , parent : " +str(parent)   )
+                    log(LOG_ERROR , "ERR! var : " +  str(var) + " , parent : " +str(parent)   , tid="400ij")
                     success = False
                 var = {k:var}
         elif ctx.match_b() != None :
@@ -316,14 +336,77 @@ class customVisitor(test_1Visitor):
         log(LOG_DEBUG , "Returning var : " + str(var) + " , success : " + str(success)  ,tid="587uj")
         return success, var
 
+    def visitExpr(self, ctx: test_1Parser.ExprContext):
+        self.commonVisitor(ctx , "expr")
+        log(LOG_DEBUG , "In visitExpr." , tid="100ag")
+        ans = ""
+        if ctx.math_b_op() != None :
+            # Implies, there is num/bracket + expr
+            op = ctx.math_b_op().accept(self)
+            success , v2 = ctx.expr().accept(self)
+            if ctx.expr_1 != None:
+                v1 = ctx.expr_1().accept(self)
+            else:
+                log(LOG_WARNING , "Unexpected condition. " , tid="100aa")
+            success , ans = self.elementWiseOp(v1 , v2 , op)
+        else:
+            log(LOG_WARNING , "expression without operator. i.e. simple uid.")
+            if ctx.expr_1 != None :
+                ans = ctx.expr_1().accept(self)
+        
+        return True , ans
+
+    def elementWiseOp(self, a , b , op) :
+        c = {}
+        log(LOG_DEBUG , "op : "  +str(op) + " a : " + str(a) +" ,  b : " + str(b) + " , c : "+ str(c)\
+            + " , type a : "  +str(type(a)) + " , type b : " + str(type(b)) ,tid="100aj"  )
+        if (type(a) != dict) or (type(b) != dict) :
+            log(LOG_DEBUG , "non dict received in elementWiseOp. " , tid="100ab")
+            return False , ""
+        for k in a.keys():
+            log(LOG_DEBUG , "Checking key : " + str(k) , tid="100ai")
+            if (k in b):
+                ta = type(a[k])
+                tb = type(b[k])
+                if ( (ta!=dict) and (tb!=dict) ) :
+                    log(LOG_DEBUG , "In leaf nodes" , tid="100ak")
+                    # If both are leaf nodes, perform op.
+                    if ( ta == tb) :
+                        if op == "+":
+                            c[k] = a[k] + b[k]
+                        elif op == "-":
+                            if(ta == str) or (tb == str): 
+                                c[k] = a[k]
+                            else:
+                                c[k] = a[k] - b[k]
+                        elif op == "*":
+                            if(ta == str) or (tb == str): 
+                                c[k] = a[k]
+                            else:
+                                c[k] = a[k] * b[k]
+                        elif op == "/":
+                            if(ta == str) or (tb == str): 
+                                c[k] = a[k]
+                            else:
+                                c[k] = a[k] / b[k]
+                    else:
+                        log(LOG_WARNING , "Typemismatch for leaf nodes. " , tid="100ac")
+                elif( (ta!=dict) or (tb!=dict) ):
+                    log(LOG_WARNING , "Nodes are leaf and non-leaf, Assigning one random node without operation." , tid="100ad")
+                    c[k] = b[k]
+                else:
+                    success , c[k] = self.elementWiseOp(a[k] , b[k] , op)
+        log(LOG_DEBUG , "op : "  +str(op) + " a : " + str(a) +" ,  b : " + str(b) + " , c : "+ str(c),tid="100ae"  )
+        return True, c;
+
 
     def visitId_(self, ctx: test_1Parser.Id_Context , parent_type=DEFAULT):
-        self.commonVisitor(ctx, "id")
+        # self.commonVisitor(ctx, "id")
         text = str(ctx.ID())
-        present , var = getVar(text)
+        retCode , var = getVar(text)
         if not present : 
             log(LOG_WARNING , "variable not in map : " + text)
-        return text
+        return retCode , var
         
     def visitRvalue(self, ctx: test_1Parser.RvalueContext , parent_type=DEFAULT):
         print("Non need to explicitly implement the rvalue, as rvalue would just call one of the OR'd methods.")
@@ -337,24 +420,24 @@ class customVisitor(test_1Visitor):
         else : 
             num = float(str(ctx.FLT()))
         log(LOG_DEBUG , "NUM : " + str(num))
-        return (num)
+        return RET_SUCCESS , (num)
 
     def visitStrings(self, ctx: test_1Parser.StringsContext):
         self.commonVisitor(ctx , "String")
         log(LOG_DEBUG , "strings return is : " + str(ctx.STR())[1:-1])
         # Remove quotes from both the ends..
-        return str(ctx.STR())[1:-1]
+        return RET_SUCCESS,  str(ctx.STR())[1:-1]
 
     def visitBt(self, ctx: test_1Parser.BtContext , parent_type=DEFAULT):
-        return True;
+        return RET_SUCCESS, True;
 
     def visitBf(self, ctx: test_1Parser.BfContext , parent_type=DEFAULT):
-        return False
+        return RET_SUCCESS, False
 
 
     def evalMember(self , ctx  , memberList , parent = {} , depth = 0):
         v = {}
-        success = False
+        success = True
         success1 = False
         log(LOG_DEBUG , " In evalMember , PARENT : " + str(parent) + " , memberList : " +str(memberList[0].getText()) )
         if len(memberList) > 1:
@@ -362,13 +445,13 @@ class customVisitor(test_1Visitor):
             if memberList[0].M() :
                 log(LOG_DEBUG , "Encountered a * .")
                 for key_each in parent.keys() :
+                    success = True
                     success1 , val =  self.evalMember(ctx , memberList[1:] , parent[key_each] , depth = (depth +1)) 
-                    success = success or success1
+                    success = success and success1
                     log(LOG_DEBUG , "success : " + str(success) + " , val : " +str(val) , tid="254dc"  )
                     if (success) :
                         v[key_each] = val
                     log(LOG_DEBUG , "v : " + str(v) , tid="465kn")
-                success = True
             elif memberList[0].uid() :
                 varName = memberList[0].uid().getText()
                 present , var = getVar(varName)
@@ -383,9 +466,12 @@ class customVisitor(test_1Visitor):
                 success = True
             elif ( memberList[0].match_b() ) : 
                 log(LOG_WARNING , "match_b not implemented in evalmembers..")
+            else : 
+                log(LOG_WARNING , "Unconsidered member encountered. " , tid="100al")
         else : 
             log(LOG_DEBUG , "Reached terminal member of member candidates ." + " , memberList : " +str(memberList[0].getText()))
-            success , v = self.visitMember_candidate( memberList[0] , parent_type=PTYPE_MEMBER , parent = parent )
+            success1 , v = self.visitMember_candidate( memberList[0] , parent_type=PTYPE_MEMBER , parent = parent )
+            success = success and success1
         log(LOG_DEBUG , "evalMember , PARENT : " + str(parent)+ " , v : " + str(v) + " , success : " + str(success) , tid="976hv")
         return success, v
 

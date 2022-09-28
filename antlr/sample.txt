@@ -1,12 +1,15 @@
-D=[ a,b];
-E=[ 34 , 54 ];
-F=[ABC , 34 , EFG , DEF];
-G = [{ABC : DEF} , {Alpha:delta} , {34:true} ];
-H = [{ABC : DEF} , {Alpha:delta} , {34:true} ,  k1,v1];
-I = {abc : def , hij:klm , 45:false , new : {13:14 , 15:16 , more : {a:b , c:d}}}
-f(new(34));
-A = 23;
-B="new"
+// D=[ a,b];
+// E=[ 34 , 54 ];
+// F=[ABC , 34 , EFG , DEF];
+// G = [{"ABC" : "DEF"} , {Alpha:delta} , {34:true} ];
+// H = [{"ABC : "DEF"} , {Alpha:delta} , {34:true} ,  k1,v1];
+
+ I1 = {"abc" : "def" , "hij":"klm" , 45:false , "new" : {13:14 , 15:16 , "more" : {"a":"b" , "c":"d" , 11:11}}};
+ I2 = {"abc" : "def" , "hij":"klm" , 45:false , "new" : {13:14 , 15:16 , "more" : {"a":"b" , "c":"d" , 11 :110}}};
+ I3 = {"more" : {"a":"b" , "c":"d" , 11:1100}}
+// f(new(34));
+// A = 23;
+// B="new"
 //end
 C="abcd";
 C="""abcd \" \' \"" \""" trial!""";
@@ -35,12 +38,12 @@ L={
 		}
 	} 
 };
-c = L.ET.NH.K
-v="ET"
-e=L."ET"
-f = L.v;
-g = L."ET";
-h=L.*."NH";
+// c = L.ET.NH.K
+// v="ET"
+// e=L."ET"
+// f = L.v;
+// g = L."ET";
+// h=L.*."NH";
 
 
 L2 = {
@@ -66,4 +69,11 @@ L2 = {
 	}
 };
 
-j = L2.*.*."PR"
+//j = L2.*.*."PR";
+
+O1 = I1 + I2;
+O2 = I1 * I2;
+O3 = I1 - I2;
+O4 = I2."new" + I3;
+O5 = I2."new"."more";
+

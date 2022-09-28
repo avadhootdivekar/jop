@@ -62,8 +62,11 @@ list_				: ( OS uid (',' uid|curly )* CS )
 					| (OS CS)
 					;
 
-expr				: ( (num | match_b)  math_b_op expr) 
-					| num | match_b ;
+expr				: ( (expr_1)  math_b_op expr)
+					| ( (expr_1) SEP math_b_op expr)
+					| expr_1 ;
+
+expr_1				: (uid | member | fcall | curly);
 
 math_b_op			: (P | N | M | D ) ;
 math_u_op			: (P P | N N ) ;
