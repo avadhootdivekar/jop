@@ -1,84 +1,13 @@
-// D=[ a,b];
-// E=[ 34 , 54 ];
-// F=[ABC , 34 , EFG , DEF];
-// G = [{"ABC" : "DEF"} , {Alpha:delta} , {34:true} ];
-// H = [{"ABC : "DEF"} , {Alpha:delta} , {34:true} ,  k1,v1];
 
  I1 = {"abc" : "def" , "hij":"klm" , 45:false , "new" : {13:14 , 15:16 , "more" : {"a":"b" , "c":"d" , 11:11}}};
  I2 = {"abc" : "def" , "hij":"klm" , 45:false , "new" : {13:14 , 15:16 , "more" : {"a":"b" , "c":"d" , 11 :110}}};
- I3 = {"more" : {"a":"b" , "c":"d" , 11:1100}}
-// f(new(34));
-// A = 23;
-// B="new"
-//end
-C="abcd";
-C="""abcd \" \' \"" \""" trial!""";
-A = B.( getvalue2()  )  ;
-A = B.( getvalue( ) ) ;
-//check2
-//D=[]
-
-/**/
-
-/*test */
-
-/*
-		Some new test as well \* /*
-*/
-a=7;
-L={
-	ET:{NH:K} , 
-	TL : {NH:J},
-	FO : {
-		LK : {
-			PR : NO
-			},
-		VK : {
-			PR : JO
-		}
-	} 
-};
-// c = L.ET.NH.K
-// v="ET"
-// e=L."ET"
-// f = L.v;
-// g = L."ET";
-// h=L.*."NH";
-
-
-L2 = {
-	ET:{NH:K} , 
-	TL : {NH:J},
-	FO : {
-		LK : {
-			PR : NO
-			},
-		VK : {
-			PR : JO
-		}
-	},
-	VO : {
-		LK : {
-			PR : {
-				NO : PO
-			}
-		},
-		DK : {
-			PR : BL
-		}
-	}
-};
-
-//j = L2.*.*."PR";
-
-O1 = I1 + I2;
-O2 = I1 * I2;
-O3 = I1 - I2;
-O4 = I2."new" + I3;
-O5 = I2."new"."more";
-v1="more";
-O11 = I1."new";
-O12 = I1."new".v1;
-
-
+ I3 = {"more" : {"a":"b" , "c":"d" , 11:1100}};
+//O1 = {};
+ O1."new" = 5;
+O1."new-2" = "newVal-2";
+O1."new-3"."new-4"."new-5" = "newVal5";
+O1."new-2" = "newVal-2'";
+O1."new-3"."new6" = "val-6";
+O1."k1" = I1."abc";
+O1."k1"."k11"."k111" = I1."new"."more";
 

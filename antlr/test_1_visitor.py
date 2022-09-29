@@ -16,6 +16,7 @@ LOG_VERBOSE             = 5
 LOG_FILTER_LEVEL        = 5
 RET_FAILURE             = -1
 RET_SUCCESS             = 0
+RET_TREE                = 1
 SEPERATOR               = '''
 ------------------------------------------------------------------------------------
 '''
@@ -33,6 +34,8 @@ DEFAULT             = "default"
 PTYPE_DEFAULT       = "default"
 PTYPE_MEMBER        = "member"
 PTYPE_GET_TREE      = "get_tree"
+PTYPE_SET_VAL       = "set_value"
+
 
 def logFallBack(level=0, str1="" , tid="000OO"):
     print( "<< check "+str(tid) + " >> " + str1)
@@ -257,34 +260,62 @@ class customVisitor(test_1Visitor):
     def visitAssign(self, ctx: test_1Parser.AssignContext , parent_type=DEFAULT):
         self.commonVisitor(ctx , "Assign")
         value = None
+        newVar = True
         count = ctx.getChildCount()
-        varName = str(ctx.ID())
-        if varName in gVarMap:
-            print("Assignment variable already declared.")
+        if ctx.id_() != None : 
+            log(LOG_DEBUG , "" , tid="100bg")
+            retCode , varName = ctx.id_().accept(self)
+            varName = ctx.id_().getText()
+        elif ctx.member() != None :
+            log(LOG_DEBUG , "" , tid="100bh")
+            retCode, varName = ctx.member().id_().accept(self)
+            varName = ctx.member().id_().getText()
+        log(LOG_DEBUG , "VarName  : " + str(varName) , tid="100bi" )
+        if (retCode == RET_SUCCESS) and (varName in gVarMap):
+            log( LOG_DEBUG , "Assignment variable already declared. VarName : "+str(varName)+" gVarMap : " + str(gVarMap) , tid="100bf" )
+            newVar = False
+
         try:
             retCode , value = ctx.rvalue().accept(self)
             print("Derived rvalue : " + str(value) + " , for string : " + str(ctx.rvalue().getText()))
-            retCode, gVarMap[varName] = ctx.rvalue().accept(self)
-        except:
-        	print("Failed..")
+            if (ctx.id_() != None) : 
+                # Direct variable assignment.
+                log(LOG_DEBUG , "varName : " + str(varName) + "value : " + str(value) ,tid="100bj"   )
+                gVarMap[varName] = value
+            elif (ctx.member() != None) : 
+                # Assign value to particular member of new variable.
+
+                if newVar : 
+                    # Assign value to exsiting member, In this case, it should be appended to existing variable if LHS is member type
+                    gVarMap[varName] = {}
+                else:
+                    parent = gVarMap[varName]
+                log(LOG_DEBUG , "varName : " + str(varName) + "value : " + str(value) ,tid="100bk"   )
+                retCode , tmpVal= self.evalMember(ctx=ctx.member(), memberList= ctx.member().member_candidate(),  ptype=PTYPE_SET_VAL , value = value , depth = 0 , parent = gVarMap[varName])
+                log(LOG_DEBUG , "tmpVal : {} , gvarMap : {}".format(tmpVal , gVarMap) , tid="100bm")
+                gVarMap[varName] = gVarMap[varName] | tmpVal
+
+        except Exception as e:
+            retCode = RET_FAILURE
+            log(LOG_ERROR , "Failed.. Exception : " + str(e)  , tid="100bl")
         # for i in range(0,count):
         #     if ctx.getChild(i).accept(self , parent_type=ASSIGNMENT):
         #         print("Accepted..")
-        return super().visitAssign(ctx)
+        return retCode , None
 
     def visitCode(self, ctx: test_1Parser.CodeContext , parent_type=DEFAULT):
         self.commonVisitor(ctx , "Code")
         return super().visitCode(ctx)
 
-    def visitMember(self, ctx: test_1Parser.MemberContext , parent_type=DEFAULT , parent={}):
+    def visitMember(self, ctx: test_1Parser.MemberContext , parent_type=DEFAULT , parent={} , value=None):
         '''
         parent type == member , in case we are visiting member of node.
         parent = dictionary of parent.
         '''
         v = None
-        first = ctx.ID()
+        first = ctx.id_().getText()
         self.commonVisitor(ctx , "member")
-        log(LOG_DEBUG , "" , tid="100ar")
+        log(LOG_DEBUG , "first : {} ".format(first ) , tid="100ar")
         if  first != None:
             if parent_type == PTYPE_MEMBER:
                 if str(first) in parent:
@@ -301,7 +332,7 @@ class customVisitor(test_1Visitor):
         parent = v
         if ctx.member_candidate() != None :
             log(LOG_DEBUG, "parent : "+ str(parent) , tid="100at" )
-            success , v = self.evalMember(ctx.member_candidate(0) , memberList=ctx.member_candidate() , parent=parent , depth=0)
+            success , v = self.evalMember(ctx.member_candidate(0) , memberList=ctx.member_candidate() , parent=parent , depth=0 , ptype=PTYPE_DEFAULT , value = value)
             log(LOG_DEBUG , " success : "+str(success)+", v : " + str(v)  + "parent : " + str(parent) , tid="100aq")
             # for i in range(len(ctx.member_candidate())):
             #     cand = ctx.member_candidate(i)
@@ -315,32 +346,38 @@ class customVisitor(test_1Visitor):
         return RET_SUCCESS, v
 
 
-    def visitMember_candidate(self, ctx: test_1Parser.Member_candidateContext , parent_type=DEFAULT , parent={}):
+    def visitMember_candidate(self, ctx: test_1Parser.Member_candidateContext , parent_type=DEFAULT , parent={} , value=None):
         var = None
         success = False
         retCode = RET_FAILURE;
         self.commonVisitor(ctx , "member candidate")
+        log(LOG_DEBUG , "parent_type : " + str(parent_type) + " , value = " + str(value) , tid="100be" )
         if ctx.uid() != None:
-            log(LOG_ERROR , "In member candidate , var : " + str(var)  + " , parent : " + str(parent) + " type : " +str(type(parent)) +", uid : " + str(ctx.uid().getText()) )
+            log(LOG_ERROR , "In member candidate , var : " + str(var)  + " , parent : " + str(parent) + " type : " +str(type(parent)) +", uid : " + str(ctx.uid().getText()) , tid="100bd" )
             retCode, val= ctx.uid().accept(self)
 
             if type(val) == dict : 
                 log(LOG_WARNING , "Dictionary specified as member.. " , tid="100am")
             k = val
             log(LOG_DEBUG , "k : " +k  + " , type : " + str(type(k))  , tid="809kn")
-            if k in parent :
-                var = parent[k]
-                success = True
-                log(LOG_DEBUG , "var : " + str(var) , tid="369ho")
-            else : 
-                log(LOG_ERROR , "ERR! var : " +  str(var) + " , parent : " +str(parent)   , tid="400ij")
-                success = False
+            if parent_type == PTYPE_SET_VAL :
+                var = {k:value}
+            else:
+                if k in parent :
+                    var = parent[k]
+                    success = True
+                    log(LOG_DEBUG , "var : " + str(var) , tid="369ho")
+                else : 
+                    log(LOG_ERROR , "ERR! var : " +  str(var) + " , parent : " +str(parent)   , tid="400ij")
+                    success = False
             if (parent_type == PTYPE_GET_TREE) :
                 var = {k:var}
                 log(LOG_DEBUG , "Parent get tree , var : " + str(var) , tid="100ay")
 
         elif ctx.match_b() != None :
             retCode , var = (ctx.match_b().accept(self))
+            if parent_type == PTYPE_SET_VAL : 
+                var = {k:var}
             success = True
         elif (ctx.M() != None) :
             log(LOG_DEBUG , "m cand in all members") 
@@ -420,12 +457,15 @@ class customVisitor(test_1Visitor):
         return retCode, c;
 
 
-    def visitId_(self, ctx: test_1Parser.Id_Context , parent_type=DEFAULT):
-        # self.commonVisitor(ctx, "id")
+    def visitId_(self, ctx: test_1Parser.Id_Context , parent_type=DEFAULT ):
+        self.commonVisitor(ctx, "id")
         text = str(ctx.ID())
         retCode , var = getVar(text)
         if retCode == RET_FAILURE : 
             log(LOG_WARNING , "variable not in map : " + text)
+        if parent_type == PTYPE_SET_VAL : 
+            retCode = RET_SUCCESS
+            var = txt
         return retCode , var
         
     def visitRvalue(self, ctx: test_1Parser.RvalueContext , parent_type=DEFAULT):
@@ -455,39 +495,52 @@ class customVisitor(test_1Visitor):
         return RET_SUCCESS, False
 
 
-    def evalMember(self , ctx  , memberList , parent = {} , ptype = PTYPE_DEFAULT , depth = 0):
+    def evalMember(self , ctx  , memberList , parent = {} , ptype = PTYPE_DEFAULT , depth = 0 , value = None):
         v = {}
         success = True
         success1 = False
         retCode = RET_FAILURE
         ret1 = RET_SUCCESS
-        log(LOG_DEBUG , " In evalMember , PARENT : " + str(parent) + " , memberList : " +str(memberList[0].getText()) )
+        log(LOG_DEBUG , " In evalMember , PARENT : {}  , memberList : {}  , ptype : {} , value : {}".\
+            format(str(parent) , str(memberList[0].getText()) ,str(ptype) , str(value) )  , tid="100ba" )
+        if type(parent ) != dict : 
+            log (LOG_DEBUG , "Non dict parent. " , tid="100az")
+            return RET_FAILURE , {}
         if len(memberList) > 1:
             log(LOG_DEBUG , "Going down a member..") 
             if memberList[0].M() :
                 log(LOG_DEBUG , "Encountered a * .")
+                if (ptype == PTYPE_DEFAULT) : 
+                    log(LOG_WARNING , "Received default parent type for *, returning tree type.")
+                    retCode = RET_TREE
                 for key_each in parent.keys() :
-                    success = True
-                    retCode , val =  self.evalMember(ctx , memberList[1:] , parent[key_each] , depth = (depth +1)) 
-                    log(LOG_DEBUG , "success : " + str(success) + " , val : " +str(val) , tid="254dc"  )
+                    retCode , val =  self.evalMember(ctx , memberList=memberList[1:] ,parent=parent[key_each] , depth = (depth +1) , ptype=PTYPE_GET_TREE  , value = value) 
+                    log(LOG_DEBUG , "retCode : " + str(retCode) + " , val : " +str(val) , tid="254dc"  )
                     if (retCode == RET_SUCCESS) :
                         if ptype == PTYPE_DEFAULT:
-                            v = val
+                            v[key_each] = val
                         elif ptype == PTYPE_GET_TREE :
                             v[key_each] = val
                         else:
                             log(LOG_WARNING , "Uidentified ptype" , tid="100aw")
                     log(LOG_DEBUG , "v : " + str(v) , tid="465kn")
+                    retCode = RET_TREE
             elif memberList[0].uid() :
                 retCode , var = memberList[0].uid().accept(self)
                 log(LOG_DEBUG , "var : "+ str(var) , tid="100an")
-                retCode , val = self.evalMember(ctx , memberList[1:] , parent[var] , depth=(depth + 1) )
+                if (ptype == PTYPE_SET_VAL) :
+                    if ((var not in parent) ) or (type(parent[var])!=dict ):
+                        parent[var] = {}
+                retCode , val = self.evalMember(ctx = ctx , memberList=memberList[1:] , parent=parent[var] , depth=(depth + 1) , ptype=ptype , value=value)
                 log(LOG_DEBUG , "retcode : "+str(retCode) + " , val:" + str(val) , tid="100au")
                 if retCode == RET_SUCCESS :
                     if ptype == PTYPE_DEFAULT : 
                         v = val
                     elif ptype == PTYPE_GET_TREE :
                         v[var] = val
+                    elif ptype == PTYPE_SET_VAL :
+                        parent[var] = parent[var] |  val
+                        v = parent
                     else : 
                         log(LOG_DEBUG , "Unidentified ptype" , tid="100ax")
                 else:
@@ -500,8 +553,14 @@ class customVisitor(test_1Visitor):
             else : 
                 log(LOG_WARNING , "Unconsidered member encountered. " , tid="100al")
         else : 
-            log(LOG_DEBUG , "Reached terminal member of member candidates ." + " , memberList : " +str(memberList[0].getText()))
-            retCode , v = self.visitMember_candidate( memberList[0] , parent_type=PTYPE_MEMBER , parent = parent )
+            log(LOG_DEBUG , "Reached terminal member of member candidates ." + " , memberList : " +str(memberList[0].getText())  , tid="100bb")
+            retCode , v = self.visitMember_candidate( memberList[0] , parent_type=ptype , parent = parent  , value=value)
+            if ptype == PTYPE_GET_TREE : 
+                log(LOG_DEBUG , " Adding key : "+str(memberList[0].accept(self)) , tid="100bc" )
+                retCode1 , k = memberList[0].accept(self)
+                if k != None :
+                    v[k] = v
+
         log(LOG_DEBUG , "evalMember , PARENT : " + str(parent)+ " , v : " + str(v) + " , retCode : " + str(retCode) , tid="976hv")
         log(LOG_DEBUG , "" , tid="100as")
 

@@ -19,7 +19,7 @@ lines				: lines line+
 					| line+
 					;
 
-assign				: ID  EQ  ( rvalue)  ;
+assign				: (id_ | member)  EQ  ( rvalue)  ;
 
 line				: ( assign ';' 	)
 					| ( rvalue  ';'	)
@@ -34,8 +34,8 @@ rule1				: member ;
 
 rvalue				: (uid | member | fcall | match_b | curly | list_ | expr) ;
 
-member				: ( ID SEP ((member_candidate ) (SEP member_candidate)* )			)
-					| ( ID all_depth						)
+member				: ( id_ SEP ((member_candidate ) (SEP member_candidate)* )			)
+					| ( id_ all_depth						)
 					| (member_candidate)
 					;
 
@@ -55,7 +55,8 @@ statement			: (rvalue | fcall );
 curly				: ( OC curly (',' curly)* CC 	)
 					| ( OC pair (',' pair)* CC		) 
  					| ( OC curly (',' pair)* CC  	)
-					| ( OC pair (',' curly)* CC  	) ;
+					| ( OC pair (',' curly)* CC  	)
+					| (OC CC) ;
 
 list_				: ( OS uid (',' uid|curly )* CS )
 					| ( OS curly (',' curly|uid )* CS )
