@@ -156,7 +156,36 @@ class customListener(test_1Listener):
 class customVisitor(test_1Visitor):
     def visitMatch_b(self, ctx: test_1Parser.Match_bContext , parent_type=DEFAULT):
         self.commonVisitor(ctx , "match_b")
-        return RET_SUCCESS, super().visitMatch_b(ctx) 
+        retCode = RET_FAILURE
+        value = None
+        if (ctx.match_b(0) != None):
+            retCode , value = ctx.match_b(0).accept(self)
+        elif (ctx.rvalue(0) != None):
+            retCode , value = ctx.rvalue(0).accept(self)
+        log(LOG_DEBUG , "retCode : {} , value : {} ".format(retCode , value) , tid="100bu"  )
+        return retCode, value
+
+    def visitDict_b_op(self, ctx: test_1Parser.Dict_b_opContext):
+        log(LOG_DEBUG , "DICT OPS not implemented.." , tid="100bw")
+        val = ""
+        retCode = RET_FAILURE
+        if ctx.P() != None:
+            val = "+"
+            retCode = RET_SUCCESS
+        elif ctx.N() != None:
+            val = "-"
+            retCode = RET_SUCCESS
+        return retCode , val
+
+    def  visitB_op(self, ctx: test_1Parser.B_opContext):
+        retCode = RET_FAILURE
+        val = None
+        if (ctx.math_b_op() != None) :
+            retCode , val  = ctx.math_b_op().accept(self)
+        elif (ctx.dict_b_op() != None) :
+            retCode , val = ctx.dict_b_op().accept(self)
+        log(LOG_DEBUG , "retCode : {}  , val : {} ".format(retCode , val)  , tid="100bx")
+        return super().visitB_op(ctx)
 
     def visitMath_b_op(self, ctx: test_1Parser.Math_b_opContext):
         val = ""
@@ -254,7 +283,7 @@ class customVisitor(test_1Visitor):
             retCode , v = ctx.strings().accept(self)
         else:
             retCode = RET_FAILURE
-        log(LOG_DEBUG , "UID value : " + str(v) )
+        log(LOG_DEBUG , "UID value : {}".format(v) , tid="100bs" )
         return retCode, v
 
     def visitAssign(self, ctx: test_1Parser.AssignContext , parent_type=DEFAULT):
@@ -277,11 +306,12 @@ class customVisitor(test_1Visitor):
 
         try:
             retCode , value = ctx.rvalue().accept(self)
-            print("Derived rvalue : " + str(value) + " , for string : " + str(ctx.rvalue().getText()))
+            #log(LOG_DEBUG , "rvalue : {}".format(ctx.rvalue()) , tid="100bo")
+            log( LOG_DEBUG , "Derived rvalue : {}  , for string : {}".format(value , ctx.rvalue().getText())  , tid="100bo")
             if (ctx.id_() != None) : 
                 # Direct variable assignment.
                 log(LOG_DEBUG , "varName : " + str(varName) + "value : " + str(value) ,tid="100bj"   )
-                gVarMap[varName] = value
+                gVarMap[varName] = dict(value)
             elif (ctx.member() != None) : 
                 # Assign value to particular member of new variable.
 
@@ -293,7 +323,7 @@ class customVisitor(test_1Visitor):
                 log(LOG_DEBUG , "varName : " + str(varName) + "value : " + str(value) ,tid="100bk"   )
                 retCode , tmpVal= self.evalMember(ctx=ctx.member(), memberList= ctx.member().member_candidate(),  ptype=PTYPE_SET_VAL , value = value , depth = 0 , parent = gVarMap[varName])
                 log(LOG_DEBUG , "tmpVal : {} , gvarMap : {}".format(tmpVal , gVarMap) , tid="100bm")
-                gVarMap[varName] = gVarMap[varName] | tmpVal
+                gVarMap[varName] = gVarMap[varName] | dict(tmpVal)
 
         except Exception as e:
             retCode = RET_FAILURE
@@ -313,7 +343,10 @@ class customVisitor(test_1Visitor):
         parent = dictionary of parent.
         '''
         v = None
-        first = ctx.id_().getText()
+        if (ctx.id_() != None ):
+            first = ctx.id_().getText()
+        else:
+            log(LOG_DEBUG , "Unexpected error, None ID in member." , tid="100bq")
         self.commonVisitor(ctx , "member")
         log(LOG_DEBUG , "first : {} ".format(first ) , tid="100ar")
         if  first != None:
@@ -364,7 +397,7 @@ class customVisitor(test_1Visitor):
                 var = {k:value}
             else:
                 if k in parent :
-                    var = parent[k]
+                    var = dict(parent[k])
                     success = True
                     log(LOG_DEBUG , "var : " + str(var) , tid="369ho")
                 else : 
@@ -396,21 +429,42 @@ class customVisitor(test_1Visitor):
         log(LOG_DEBUG , "In visitExpr." , tid="100ag")
         ans = ""
         retCode = RET_FAILURE
-        if ctx.math_b_op() != None :
+        if ctx.b_op() != None :
             # Implies, there is num/bracket + expr
-            retCode , op = ctx.math_b_op().accept(self)
+            retCode , op = ctx.b_op().accept(self)
             retCode , v2 = ctx.expr().accept(self)
             if ctx.expr_1 != None:
                 retCode, v1 = ctx.expr_1().accept(self)
+                log(LOG_DEBUG , "retCode : {} v1:{}".format(retCode, v1) , tid="100bt")
             else:
                 log(LOG_WARNING , "Unexpected condition. " , tid="100aa")
-            retCode , ans = self.elementWiseOp(v1 , v2 , op)
+            log(LOG_DEBUG , "v1 : {} , v2 : {} , op : {}".format(v1 , v2 , op)  , tid="100bp" )
+            if (ctx.b_op() != None ) and (ctx.b_op().math_b_op()!= None):
+                retCode , ans = self.elementWiseOp(v1 , v2 , op)
+            else:
+                retCode , ans = self.evalDictOp(v1 , v2 , op)
         else:
             log(LOG_WARNING , "expression without operator. i.e. simple uid.")
-            if ctx.expr_1 != None :
+            if ctx.expr_1() != None :
                 retCode, ans = ctx.expr_1().accept(self)
-        
+            else: 
+                log(LOG_WARNING , "expr_1 not defined : " , tid="100br")
+        log(LOG_DEBUG , "Exit visitexpr. retCode : {} , ans : {} , ctx : {}".format(retCode , ans , ctx.getText() ) , tid="100bn")
         return retCode , ans
+
+    def evalDictOp(self , a , b , op ):
+        retCode = RET_FAILURE
+        val = None
+        if (op == "+"):
+            val = a|b
+            retCode = RET_SUCCESS
+        elif (op == "-"):
+            val = dict(a)
+            for k , v  in list(val.items()):
+                if k in b :
+                    del val[k]
+            retCode = RET_SUCCESS
+        return retCode , val
 
     def elementWiseOp(self, a , b , op) :
         c = {}
@@ -453,6 +507,8 @@ class customVisitor(test_1Visitor):
                     c[k] = b[k]
                 else:
                     retCode , c[k] = self.elementWiseOp(a[k] , b[k] , op)
+            else:
+                log(LOG_DEBUG , "Skipping key : {} ".format(k) ,tid="100bv" )
         log(LOG_DEBUG , "op : "  +str(op) + " a : " + str(a) +" ,  b : " + str(b) + " , c : "+ str(c),tid="100ae"  )
         return retCode, c;
 
@@ -540,7 +596,7 @@ class customVisitor(test_1Visitor):
                         v[var] = val
                     elif ptype == PTYPE_SET_VAL :
                         parent[var] = parent[var] |  val
-                        v = parent
+                        v = dict(parent)
                     else : 
                         log(LOG_DEBUG , "Unidentified ptype" , tid="100ax")
                 else:
@@ -566,22 +622,20 @@ class customVisitor(test_1Visitor):
 
         return retCode, v
 
+    def evalUnion(ctx , a , b , parent_type=PTYPE_DEFAULT) : 
+        return RET_FAILURE , {}
+
+    def evalDiff(ctx , a , b , parent_type = PTYPE_DEFAULT):
+        return RET_FAILURE , {} 
+
 
     def commonVisitor(self, ctx  , ruleName):
-        abc = ctx.getText()
-        count = ctx.getChildCount()
-        log( LOG_DEBUG , "visitor  :" + ruleName +" : " + abc + " ,  child count : " + str(count)  , tid = "099aa" )        
-        try:
-            if (count > 0) : 
-                for i in range(0,count) : 
-                    c = ctx.getChild(i)
-                    c.accept(self)
-                    # print("done with " + str(c.getText()) )
-
-            else : 
-                log(LOG_DEBUG , "This is termilnal node.." , tid="099ab")
-        except:
-            log(LOG_ERROR , "Exception in common visitor..")
+        try: 
+            abc = ctx.getText()
+            count = ctx.getChildCount()
+            log( LOG_DEBUG , "visitor  :" + ruleName +" : " + abc + " ,  child count : " + str(count)  , tid = "099aa" )        
+        except Exception as e:
+            log(LOG_ERROR , "Exception in commin visitor : {}".format(e)  )
 
 
 def isFunction(param):

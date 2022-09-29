@@ -36,7 +36,6 @@ rvalue				: (uid | member | fcall | match_b | curly | list_ | expr) ;
 
 member				: ( id_ SEP ((member_candidate ) (SEP member_candidate)* )			)
 					| ( id_ all_depth						)
-					| (member_candidate)
 					;
 
 member_candidate	: (uid | match_b | M );
@@ -63,16 +62,20 @@ list_				: ( OS uid (',' uid|curly )* CS )
 					| (OS CS)
 					;
 
-expr				: ( (expr_1)  math_b_op expr)
-					| ( (expr_1) SEP math_b_op expr)
+expr				: ( (expr_1)  b_op expr)
+					| ( (expr_1) SEP b_op expr)
 					| expr_1 ;
 
-expr_1				: (uid | member | fcall | curly);
+expr_1				: ( member | fcall | curly | match_b | uid);
 
-math_b_op			: (P | N | M | D ) ;
+b_op				: (dict_b_op | math_b_op);
+math_b_op			: ( (SEP P) | (SEP N) | (SEP M) | (SEP D) );
+dict_b_op			: (P | N ) ;
 math_u_op			: (P P | N N ) ;
 getParent			: SEP '<' ;
 pair				: uid ':'  (uid | curly | list_ ) ;
+regex				: SYS_DEF 're' strings ;
+
 
 //almostAll				: .*?lines.*?EOF ;
 /*
@@ -107,6 +110,7 @@ BF					: 'false'	;			// Boolean false
 INT					: [0-9]+ ;
 OTHERS				: [ \n\t\r]+ -> skip;
 FLT					: INT '.' INT ;
+SYS_DEF				: '_';					// System defined internal macros/functions.
 STR					: '"' (ESC | . )*? '"' ; 
 ID					: LETTERS  (LETTERS | INT)* ;
 // ERR_ID				: INT (LETTERS | INT)* ;
