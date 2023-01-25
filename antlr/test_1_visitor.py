@@ -1,12 +1,15 @@
-from curses import tigetflag
 from http.client import RESET_CONTENT
-from mimetypes import common_types
-from statistics import variance
-from syslog import LOG_ERR
+from inspect import currentframe, getframeinfo
+from itertools import islice
 import antlr4
 import sys
+import re
 from antlr4.tree.Trees import Trees
+import logging
 
+# Creating a logger object
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__.split('.')[0])
 
 LOG_ERROR               = 1
 LOG_WARNING             = 2
@@ -37,8 +40,24 @@ PTYPE_GET_TREE      = "get_tree"
 PTYPE_SET_VAL       = "set_value"
 
 
+'''
+Return value sample dictionary : 
+ret = {
+    "value" : "This is actual value or may be another dictionary or array as value. "
+    "str"   : "String of this node"
+    ""
+}
+'''
+
+def getFLoc():
+    frameinfo = getframeinfo(currentframe().f_back.f_back)
+    filename = frameinfo.filename.split('/')[-1]
+    linenumber = frameinfo.lineno
+    loc_str = ' # %s:%d : ' % (filename, linenumber)
+    return loc_str
+
 def logFallBack(level=0, str1="" , tid="000OO"):
-    print( "<< check "+str(tid) + " >> " + str1)
+    print(  getFLoc()+ ":<< check "+str(tid) + " >> " + str1 )
 
 log = logFallBack
 
@@ -70,7 +89,6 @@ def run_1 (argv , log=logFallBack) :
     log(LOG_DEBUG , "Trees : " + str(Trees))
     print("\n\n")
     visitor = customVisitor()
-    visitor.visit(root_2)
     p = visitor.visit(tree)
     print(SEPERATOR + "gVarMap : " + str(gVarMap) + "\nvisitor return : p:" + str(p) )
     return
@@ -291,9 +309,11 @@ class customVisitor(test_1Visitor):
         value = None
         newVar = True
         count = ctx.getChildCount()
+        log(LOG_DEBUG , )
         if ctx.id_() != None : 
             log(LOG_DEBUG , "" , tid="100bg")
-            retCode , varName = ctx.id_().accept(self)
+            ctxId = ctx.id_()
+            retCode , varName = self.visitId_(ctx=ctxId , parent_type=PTYPE_SET_VAL)
             varName = ctx.id_().getText()
         elif ctx.member() != None :
             log(LOG_DEBUG , "" , tid="100bh")
@@ -328,9 +348,6 @@ class customVisitor(test_1Visitor):
         except Exception as e:
             retCode = RET_FAILURE
             log(LOG_ERROR , "Failed.. Exception : " + str(e)  , tid="100bl")
-        # for i in range(0,count):
-        #     if ctx.getChild(i).accept(self , parent_type=ASSIGNMENT):
-        #         print("Accepted..")
         return retCode , None
 
     def visitCode(self, ctx: test_1Parser.CodeContext , parent_type=DEFAULT):
@@ -397,7 +414,16 @@ class customVisitor(test_1Visitor):
                 var = {k:value}
             else:
                 if k in parent :
-                    var = dict(parent[k])
+                    log(LOG_DEBUG , "In parent , parent[k] = " + str(parent[k]) , tid="100by")
+                    if (type( (parent[k])) == dict) :
+                        log(LOG_DEBUG , "dict" , tid="100bz" )
+                        var = dict(parent[k])
+                    elif (( type(parent[k] )== list) ) : 
+                        log(LOG_DEBUG , "list" , tid="100ca" )
+                        var = list(parent[k])
+                    else:
+                        log(LOG_DEBUG , "single" , tid="100cb" )
+                        var = parent[k]
                     success = True
                     log(LOG_DEBUG , "var : " + str(var) , tid="369ho")
                 else : 
@@ -518,10 +544,10 @@ class customVisitor(test_1Visitor):
         text = str(ctx.ID())
         retCode , var = getVar(text)
         if retCode == RET_FAILURE : 
-            log(LOG_WARNING , "variable not in map : " + text)
+            log(LOG_WARNING , "variable not in map : " + text + " , ptype : " + str(parent_type) )
         if parent_type == PTYPE_SET_VAL : 
             retCode = RET_SUCCESS
-            var = txt
+            var = text
         return retCode , var
         
     def visitRvalue(self, ctx: test_1Parser.RvalueContext , parent_type=DEFAULT):
@@ -550,8 +576,28 @@ class customVisitor(test_1Visitor):
     def visitBf(self, ctx: test_1Parser.BfContext , parent_type=DEFAULT):
         return RET_SUCCESS, False
 
+    def isDict(var):
+        return (type(var) == dict)
 
-    def evalMember(self , ctx  , memberList , parent = {} , ptype = PTYPE_DEFAULT , depth = 0 , value = None):
+    def isList(var):
+        return (type(var) == list)
+
+    def getValue(self , target , var , path=[]):
+        value = None
+        if self.isDict(var) : 
+            if self.pathMatch(target=target , path=path , isRegex=False):
+                # Path matches, return current value. 
+                value = var
+            for k in var.keys():
+                self.getValue(target , path.append(k) , var )
+
+        return RET_FAILURE , []
+
+    def setValue(self , target, path , value):
+
+        return RET_FAILURE , False
+
+    def evalMember(self , ctx  , memberList , parent = {} , ptype = PTYPE_DEFAULT , depth = 0 , value = None , root = [] , path = []):
         v = {}
         success = True
         success1 = False
@@ -591,7 +637,7 @@ class customVisitor(test_1Visitor):
                 log(LOG_DEBUG , "retcode : "+str(retCode) + " , val:" + str(val) , tid="100au")
                 if retCode == RET_SUCCESS :
                     if ptype == PTYPE_DEFAULT : 
-                        v = val
+                        v = val #Check log function
                     elif ptype == PTYPE_GET_TREE :
                         v[var] = val
                     elif ptype == PTYPE_SET_VAL :
@@ -619,13 +665,103 @@ class customVisitor(test_1Visitor):
 
         log(LOG_DEBUG , "evalMember , PARENT : " + str(parent)+ " , v : " + str(v) + " , retCode : " + str(retCode) , tid="976hv")
         log(LOG_DEBUG , "" , tid="100as")
-
+        log(LOG_DEBUG , getFLoc() + "Check log function. " )
+        if self.pathMatch(root , path , False) :
+            #Do nothing..
+            log(LOG_DEBUG , "Check log function. " + getFLoc())
+        elif (self.pathMayMatch(root , path , False) ):
+            log(LOG_DEBUG , "Check log function. " + getFLoc())
+        else : 
+            log(LOG_DEBUG , "Check log function. " + getFLoc())
+            retCode = RET_FAILURE
         return retCode, v
 
-    def evalUnion(ctx , a , b , parent_type=PTYPE_DEFAULT) : 
+    def pathMatch(self, target , path, isRegex) : 
+        '''
+        Identify if path is same as defined in target.
+        '''
+        retCode = RET_FAILURE
+        v = False
+        log(LOG_DEBUG , getFLoc() + "pathmatch " )
+        if ( (type(target) == list) and (type(path)== list) ):
+            if len(target) == len(path) : 
+                v = True
+                for i in range(len(target)):
+                    if (target[i] == path[i]) or (target[i]=='*') :
+                        continue
+                    else : 
+                        v = False
+                        break
+            else : 
+                v = False
+        else:
+            retCode = RET_FAILURE
+            v = False
+        return RET_FAILURE , v
+
+    def internalCalls(self , ctx  ):
+        retCode = RET_FAILURE
+        v = None
+        f = ""
+        log(LOG_DEBUG , getFLoc() + "Pathmaymatch. " )
+        if f == "re":
+            v = ""
+        elif f == "replace":
+            v = ""
+        else : 
+            retCode = RET_FAILURE
+        return retCode , v
+
+
+    def pathMayMatch(self , root , path , isRegex):
+        '''
+        Identify if 'path' can become same as root if it is travered further.
+        '''
+        retCode = RET_FAILURE
+        v = False
+        if ( (type(root) == list) and (type(path)== list) ):
+            if ( len(root) >= len(path) ) : 
+                v = True
+                for i in range(len(path)):
+                    if (root[i] == path[i]) or (root[i]=='*') :
+                        continue
+                    else : 
+                        v = False
+                        break
+            else : 
+                v = False
+        else:
+            retCode = RET_FAILURE
+            v = False
+        return RET_FAILURE , v
+
+
+    def replace(self, a , b , input , isRegex) :
+        retCode = RET_FAILURE
+        v = ""
+        try : 
+            if (not isRegex):
+                if a == input :
+                    v = b
+                    retCode = RET_SUCCESS
+                else : 
+                    v = a
+                    retCode = RET_SUCCESS
+            else:
+                match = re.search(a , input)
+                if match!= None :
+                    v = b
+                else:
+                    v = input
+                retCode = RET_SUCCESS
+        except Exception as e : 
+            retCode = RET_FAILURE
+        return retCode , v
+
+    def evalUnion(self, ctx , a , b , parent_type=PTYPE_DEFAULT) : 
         return RET_FAILURE , {}
 
-    def evalDiff(ctx , a , b , parent_type = PTYPE_DEFAULT):
+    def evalDiff(self, ctx , a , b , parent_type = PTYPE_DEFAULT):
         return RET_FAILURE , {} 
 
 

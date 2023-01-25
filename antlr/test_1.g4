@@ -75,7 +75,7 @@ math_u_op			: (P P | N N ) ;
 getParent			: SEP '<' ;
 pair				: uid ':'  (uid | curly | list_ ) ;
 regex				: SYS_DEF 're' strings ;
-
+sys_fcall			: SYS_DEF fcall;
 
 //almostAll				: .*?lines.*?EOF ;
 /*
@@ -99,6 +99,7 @@ P					: '+' ;
 N					: '-' ;
 M					: '*' ;
 D					: '/' ;
+ROOT				: './';
 OB					: '(' ;
 CB					: ')' ;
 OC					: '{' ;
