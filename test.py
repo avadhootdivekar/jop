@@ -55,4 +55,34 @@ def op_check():
 	print("random key : {} , value : {}  ".format(k , v))
 
 
-op_check()
+def test2():
+	v1={"a1" : "v1" , "a2" : "v2" , "a3" : {"a4" : "v4" , "a5" : {"a6" : "v6"}}}
+	v2={"b1" : "vb1" , "b2" : "vb2" , "b3" : {"b4" : "vb4" , "b5" : {"b6" : "vb6"}}}
+	v3=v2.copy()
+	print ("v2 : {}   ,    v3 : {} ".format(v2, v3) )
+	v3.__delitem__("b2")
+	print ("v2 : {}   ,    v3 : {} ".format(v2, v3) )
+	j1=dict_op.ji(v1)
+	j2=dict_op.ji(v3)
+	print("j1 : [{}]".format(j1))
+	print("j2 : [{}]".format(j2))
+	j1.filter(level=0 , key="a1")
+	print("After filter j1 : [{}]".format(j1))
+
+	j2.filter(level=1 ,  keyRegex=r"b[0-4]")
+	print("After filter j2 : [{}] , v2 : [{}]".format(j2 , v2))
+
+	j2.scan(v2)
+	print("Reinitialize j2 : {} ".format(j2))
+	j2.filter(level=0 , value="vb2")
+	print("After filter j2 : [{}]\n\n".format(j2))
+
+	# Check valueRegex.
+	j2.scan(v2)
+	print("Reinitialize j2 : {} ".format(j2))
+	j2.filter(level=1 , valueRegex="vb\d")
+	print("After filter j2 : [{}]".format(j2))
+
+
+# op_check()
+test2()

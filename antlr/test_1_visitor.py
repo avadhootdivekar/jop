@@ -8,7 +8,8 @@ from antlr4.tree.Trees import Trees
 import logging
 
 # Creating a logger object
-logging.basicConfig(level=logging.DEBUG)
+logFormat="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
+logging.basicConfig(format=logFormat ,  level=logging.DEBUG)
 logger = logging.getLogger(__name__.split('.')[0])
 
 LOG_ERROR               = 1
@@ -168,6 +169,11 @@ class customListener(test_1Listener):
         abc = ctx.getText()
         print("customListener rvalue : " + abc)
         return super().enterRvalue(ctx)
+
+class response():
+    def __init__(self):
+        self.ret = RET_FAILURE
+    
 
 
 
@@ -360,12 +366,19 @@ class customVisitor(test_1Visitor):
         parent = dictionary of parent.
         '''
         v = None
+        if (ctx.ROOT() != None) and ( (0 == len(ctx.ROOT())) or (0 == len(ctx.ROOT())) ) : 
+            logger.debug("ROOT : {} ".format(ctx.ROOT()))
+        else : 
+            logger.debug("Incorrect ROOT defined. ROOT count = [{}]".format(len(ctx.ROOT())))
+            return RET_FAILURE , v
+        
         if (ctx.id_() != None ):
             first = ctx.id_().getText()
         else:
             log(LOG_DEBUG , "Unexpected error, None ID in member." , tid="100bq")
         self.commonVisitor(ctx , "member")
-        log(LOG_DEBUG , "first : {} ".format(first ) , tid="100ar")
+        logger.debug("first : {} ".format(first ) )
+        logger.debug("Member candidatess : {} ".format(ctx.getText()) )
         if  first != None:
             if parent_type == PTYPE_MEMBER:
                 if str(first) in parent:
@@ -396,12 +409,12 @@ class customVisitor(test_1Visitor):
         return RET_SUCCESS, v
 
 
-    def visitMember_candidate(self, ctx: test_1Parser.Member_candidateContext , parent_type=DEFAULT , parent={} , value=None):
+    def visitMember_candidate(self, ctx: test_1Parser.Member_candidateContext , parent_type=DEFAULT , parent={} , value=None , getDict=False):
         var = None
         success = False
-        retCode = RET_FAILURE;
+        retCode = RET_FAILURE
         self.commonVisitor(ctx , "member candidate")
-        log(LOG_DEBUG , "parent_type : " + str(parent_type) + " , value = " + str(value) , tid="100be" )
+        logger.debug( "parent_type : {} , value : {} ".format( parent_type, value) ) 
         if ctx.uid() != None:
             log(LOG_ERROR , "In member candidate , var : " + str(var)  + " , parent : " + str(parent) + " type : " +str(type(parent)) +", uid : " + str(ctx.uid().getText()) , tid="100bd" )
             retCode, val= ctx.uid().accept(self)
@@ -429,9 +442,11 @@ class customVisitor(test_1Visitor):
                 else : 
                     log(LOG_ERROR , "ERR! var : " +  str(var) + " , parent : " +str(parent)   , tid="400ij")
                     success = False
-            if (parent_type == PTYPE_GET_TREE) :
-                var = {k:var}
-                log(LOG_DEBUG , "Parent get tree , var : " + str(var) , tid="100ay")
+            if (getDict) :
+                if (k in parent):
+                    var = {k:var}
+                    success = True
+                    logger.debug(LOG_DEBUG , "Parent get dictionary, var : {} ".format(var) )
 
         elif ctx.match_b() != None :
             retCode , var = (ctx.match_b().accept(self))
@@ -444,7 +459,7 @@ class customVisitor(test_1Visitor):
             success = True
             # for k,v in parent.items():
                 # var.append()
-        log(LOG_DEBUG , "Returning var : " + str(var) + " , success : " + str(success)  ,tid="587uj")
+        log(LOG_DEBUG , "Returning var : {} , success : {}  ".format(var , success) )
         if success :
             retCode = RET_SUCCESS
         return retCode, var
@@ -597,7 +612,7 @@ class customVisitor(test_1Visitor):
 
         return RET_FAILURE , False
 
-    def evalMember(self , ctx  , memberList , parent = {} , ptype = PTYPE_DEFAULT , depth = 0 , value = None , root = [] , path = []):
+    def evalMember(self , ctx  , memberList , parent = {} , ptype = PTYPE_DEFAULT , depth = 0 , value = None , getDict=False):
         v = {}
         success = True
         success1 = False
