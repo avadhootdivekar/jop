@@ -8,7 +8,7 @@ import copy
 # pdb.set_trace()
 
 logFormat="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
-logging.basicConfig(format=logFormat ,  level=logging.INFO)
+logging.basicConfig(format=logFormat ,  level=logging.DEBUG , filename="dict_op.log")
 log = logging.getLogger(__name__.split('.')[0])
 
 class Infix:
@@ -98,12 +98,14 @@ class ji (dict ):
 		c = ji(copy.deepcopy(self))
 		for k,v in c.items():
 			log.debug(" keys : {}".format(k))
-			if  isinstance(v , numbers.Number) or (isinstance(v , str)):
+			if  isinstance(v , numbers.Number) :
 				if k in b.keys():
 					c[k] -= b[k]
 			elif isinstance(v , dict) and ( ( k in b.keys() ) and isinstance(b[k] , dict)):
 				c[k] = ji(c[k]) - ji(b[k])
-				logging.debug("Adding dictionary.\n")
+				logging.debug("Subtracting dictionary.\n")
+			else : 
+				log.warning("Subtraction not supported for type [{}] .".format(type(v)))
 		return c 
 
 	def __mul__(self , b ):

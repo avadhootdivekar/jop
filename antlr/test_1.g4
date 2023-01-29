@@ -19,7 +19,7 @@ lines				: lines line+
 					| line+
 					;
 
-assign				: (id_ | member)  EQ  ( rvalue)  ;
+assign				: (id_ | member)  eq  ( rvalue)  ;
 
 line				: ( assign ';' 	)
 					| ( rvalue  ';'	)
@@ -32,9 +32,10 @@ block				: '{' (lines | block )+ '}' ;
 
 rule1				: member ;
 
+
 rvalue				: (uid | member | fcall | match_b | curly | list_ | expr) ;
 
-member				: ( id_ (SEP|ROOT) ((member_candidate ) ((SEP|ROOT) member_candidate)* )			)
+member				: ( id_ (SEP|root) ((member_candidate ) ((SEP|root) member_candidate)* )			)
 					| ( id_ all_depth						)
 					;
 
@@ -76,6 +77,8 @@ getParent			: SEP '<' ;
 pair				: uid ':'  (uid | curly | list_ ) ;
 regex				: SYS_DEF 're' strings ;
 sys_fcall			: SYS_DEF fcall;
+root				: ROOT;
+eq					: EQ;
 
 //almostAll				: .*?lines.*?EOF ;
 /*

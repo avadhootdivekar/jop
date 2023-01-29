@@ -7,11 +7,16 @@ import re
 from antlr4.tree.Trees import Trees
 import logging
 
+sys.path.append("/home/container/mounted/jop_repo/")
+import dict_op
+
+
 # Creating a logger object
 logFormat="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
-logging.basicConfig(format=logFormat ,  level=logging.DEBUG)
+logging.basicConfig(filename="visitor.log" ,  level=logging.DEBUG , force=True , format=logFormat)
 logger = logging.getLogger(__name__.split('.')[0])
-
+logger.debug("This is first debug message")
+logger.error("This is first error message")
 LOG_ERROR               = 1
 LOG_WARNING             = 2
 LOG_INFO                = 3
@@ -91,8 +96,38 @@ def run_1 (argv , log=logFallBack) :
     print("\n\n")
     visitor = customVisitor()
     p = visitor.visit(tree)
-    print(SEPERATOR + "gVarMap : " + str(gVarMap) + "\nvisitor return : p:" + str(p) )
+    logger.debug(SEPERATOR + "gVarMap : {} \nvisitor return : p:".format( gVarMap, p) )
     return
+
+
+class cArgs():
+    setValue                        =   False
+    rootDefined                     =   False
+    lValue                          =   False
+    level                           =   0
+    sharedJi                        =   dict_op.ji()
+    def __init__(self):
+        inArray     = None
+        inDict      = None
+
+class cRet():
+    RETCODE_SUCCESS                 = "RETURN_SUCCESS"
+    RETCODE_GENERIC_FAILURE         = "RETURN_GENERIC_FAILURE"
+    RETCODE_INVALID_PARAMS          = "RETURN_INVALID_PARAMETERS"
+    RETCODE_INVALID_RET             = "RETURN_INVALID_RETURN_CODE"
+    RETCODE_INVALID_CONSTRUCT       = "RETURN_INVALID_LANGUAGE_CONSTRUCT"
+    key                             = None
+    value                           = None
+    retCode                         = None
+    text                            = None
+    rootDefined                     = False
+    sharedJi                        = dict_op.ji()
+    varValue                        = None
+    def __init__(self):
+        retCode     = self.RETCODE_GENERIC_FAILURE
+    
+    def __str__(self):
+        return ("cRet : {{ retCode : {} key : {} , value : {} , text : {} }}".format(self.retCode , self.key , self.value , self.text) )
 
 
 class customListener(test_1Listener): 
@@ -178,338 +213,455 @@ class response():
 
 
 class customVisitor(test_1Visitor):
-    def visitMatch_b(self, ctx: test_1Parser.Match_bContext , parent_type=DEFAULT):
+    argStack = []
+    def visitMatch_b(self, ctx: test_1Parser.Match_bContext  ):
         self.commonVisitor(ctx , "match_b")
-        retCode = RET_FAILURE
+        args = self.getArgs()
+        ret = cRet()
         value = None
         if (ctx.match_b(0) != None):
-            retCode , value = ctx.match_b(0).accept(self)
+            nArg = self.newArgs()
+            ret = ctx.match_b(0).accept(self)
         elif (ctx.rvalue(0) != None):
-            retCode , value = ctx.rvalue(0).accept(self)
-        log(LOG_DEBUG , "retCode : {} , value : {} ".format(retCode , value) , tid="100bu"  )
-        return retCode, value
+            nArg = self.newArgs()
+            ret = ctx.rvalue(0).accept(self)
+        logger.debug( "ret : {} ,".format(ret)   )
+        return ret
 
-    def visitDict_b_op(self, ctx: test_1Parser.Dict_b_opContext):
+    def visitDict_b_op(self, ctx: test_1Parser.Dict_b_opContext  ):
         log(LOG_DEBUG , "DICT OPS not implemented.." , tid="100bw")
-        val = ""
-        retCode = RET_FAILURE
+        args = self.getArgs()
+        ret = cRet()
+        ret.value = ""
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         if ctx.P() != None:
-            val = "+"
-            retCode = RET_SUCCESS
+            ret.value = "+"
+            ret.retCode = ret.RETCODE_SUCCESS
         elif ctx.N() != None:
-            val = "-"
-            retCode = RET_SUCCESS
-        return retCode , val
+            ret.value = "-"
+            ret.retCode = ret.RETCODE_SUCCESS
+        return ret
 
-    def  visitB_op(self, ctx: test_1Parser.B_opContext):
-        retCode = RET_FAILURE
-        val = None
+    def  visitB_op(self, ctx: test_1Parser.B_opContext  ):
+        args = self.getArgs()
+        ret = cRet()
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
+        ret.value = None
         if (ctx.math_b_op() != None) :
-            retCode , val  = ctx.math_b_op().accept(self)
+            nArg = self.newArgs()
+            ret  = ctx.math_b_op().accept(self)
         elif (ctx.dict_b_op() != None) :
-            retCode , val = ctx.dict_b_op().accept(self)
-        log(LOG_DEBUG , "retCode : {}  , val : {} ".format(retCode , val)  , tid="100bx")
-        return super().visitB_op(ctx)
+            nArg = self.newArgs()
+            ret = ctx.dict_b_op().accept(self)
+        logger.debug("ret : {}   ".format(ret )  )
+        return ret #super().visitB_op(ctx)
 
-    def visitMath_b_op(self, ctx: test_1Parser.Math_b_opContext):
-        val = ""
-        retCode = RET_FAILURE
+    def visitMath_b_op(self, ctx: test_1Parser.Math_b_opContext  ):
+        args    = self.getArgs()
+        ret     = cRet()
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         if ctx.P() != None:
-            val = "+"
-            retCode = RET_SUCCESS
+            ret.value = ".+"
+            ret.retCode = ret.RETCODE_SUCCESS
         elif ctx.N() != None:
-            val = "-"
-            retCode = RET_SUCCESS
+            ret.value = ".-"
+            ret.retCode = ret.RETCODE_SUCCESS
         elif ctx.M() != None:
-            val = "*"
-            retCode = RET_SUCCESS
+            ret.value = ".*"
+            ret.retCode = ret.RETCODE_SUCCESS
         elif ctx.D() != None:
-            val = "/"
-            retCode = RET_SUCCESS
-        if val =="" :
-            log(LOG_WARNING , "Unexpected binary operator. " , tid="100af")
-        return retCode, val
+            ret.value = "./"
+            ret.retCode = ret.RETCODE_SUCCESS
+        if ret.value =="" :
+            logger.warning( "Unexpected binary operator. ")
+        return ret
     
-    def visitLines(self, ctx: test_1Parser.LinesContext , parent_type=DEFAULT):
+    def visitLines(self, ctx: test_1Parser.LinesContext  ):
+        args = self.getArgs()
         self.commonVisitor(ctx , "Lines")
         print("visitor count : " + str(ctx.getChildCount()) )
         # self.visit()
         return super().visitLines(ctx)
 
-    def visitList_(self, ctx: test_1Parser.List_Context):
+    def visitList_(self, ctx: test_1Parser.List_Context   ):
         self.commonVisitor(ctx , "LIST_")
-        v = []
+        ret = cRet()
+        ret.value = []
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         count = ctx.getChildCount()
-        retCode = RET_FAILURE
         # log(LOG_DEBUG , "list tokens : " + str(ctx.getTokens()))
         for i in range(count-1):
             if i==0:
                 # Skip Opening and closing brackets.
                 continue;
             node = ctx.getChild(i)
-            log(LOG_DEBUG , "list node : " + node.getText())
-            if (node.accept(self) != None):
-                v.append(node.accept(self)[1])
-        log(LOG_DEBUG , "Final derived list : " + str(v))
-        return RET_SUCCESS , v
+            logger.debug( "list node : {}" .format( node.getText()) )
+            nArgs = self.newArgs()
+            child = node.accept(self) 
+            if ( child != None):
+                ret.value.append(child[1])
+        logger.debug("Final derived list : {} ".format(ret) )
+        return ret
 
-    def visitCurly(self, ctx: test_1Parser.CurlyContext):
+    def visitCurly(self, ctx: test_1Parser.CurlyContext  ):
         self.commonVisitor(ctx , "  CURLY : ")
-        v = {}
-        retCode = RET_FAILURE
+        args = cArgs()
+        self.argStack.append(args)
+        ret = cRet()
+        ret.value = {}
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         if ctx.curly() != None :
             for i in range(len(ctx.curly())):
-                log(LOG_ERROR , "Getting curly " + str(i))
-                retCode , val = ctx.curly(i).accept(self)
-                v = v | val
+                logger.error( "Getting curly {}".format(i))
+                nArgs = self.newArgs()
+                ret2 = ctx.curly(i).accept(self)
+                ret.value = ret.value | ret2.val
         if ctx.pair() != None : 
             for i in range(len(ctx.pair())) : 
-                log(LOG_ERROR , "Getting pair " + str(i) )
-                retCode , temp_k , temp_v = ctx.pair(i).accept(self)
-                v = v | {temp_k : temp_v}
-        log(LOG_ERROR , "value for curly : " + str(v)  + " , where actual text : " + ctx.getText())
-        return RET_SUCCESS, v
+                logger.error("Getting pair {}".format(i) )
+                nArgs = self.newArgs()
+                ret2 = ctx.pair(i).accept(self)
+                ret.value = ret.value | {ret2.key : ret2.value}
+        logger.error( "value for curly : {} , where actual text : {} " .format( ret.value , ctx.getText()) )
+        return ret
 
-    def visitPair(self, ctx: test_1Parser.PairContext):
+    def visitPair(self, ctx: test_1Parser.PairContext  ):
         self.commonVisitor(ctx, " PAIR : ")
-        k = None
-        v = None
-        retCode = RET_FAILURE
+        args = self.getArgs()
+        ret = cRet()
+        ret.key = None
+        ret.value = None
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         if ctx.uid(0) == None:
-            log(LOG_ERROR , "UID not found in pair.")
-        retCode , k = ctx.uid(0).accept(self)
+            logger.error("UID not found in pair.")
+        nArgs = self.newArgs()
+        retK = ctx.uid(0).accept(self)
 
         if (ctx.uid(1) != None):
-            log(LOG_DEBUG , "uid value for pair")
-            retCode , v = ctx.uid(1).accept(self)
+            logger.debug( "uid value for pair")
+            nArgs = self.newArgs()
+            retV = ctx.uid(1).accept(self)
         elif (ctx.list_() != None ) :
             log(LOG_DEBUG , "curly value for pair")
-            retCode , v = ctx.list_().accept(self)
+            nArgs = self.newArgs()
+            retV = ctx.list_().accept(self)
         elif (ctx.curly() != None ) :
             log(LOG_DEBUG , "list value for pair")
-            retCode , v = ctx.curly().accept(self)
-        log(LOG_ERROR , "pair key : " + str(k) + " , v : " + str(v) )
-        return RET_SUCCESS, k , v
+            nArgs = self.newArgs()
+            retV = ctx.curly().accept(self)
+        logger.error( "pair key : {} , v : {} ".format(retK.value , retV.value) )
+        ret.key = retK.value
+        ret.value = retV.value
+        ret.retCode = ret.RETCODE_SUCCESS
+        return ret
 
-    def visitUid(self, ctx: test_1Parser.UidContext):
+    def visitUid(self, ctx: test_1Parser.UidContext   ):
         self.commonVisitor(ctx , "UID")
-        v = None
-        retCode = RET_FAILURE
+        args        = self.getArgs()
+        ret         = cRet()
+        ret.value   = None
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         if (ctx.num() != None):
-            retCode , v = ctx.num().accept(self)
+            nArgs = self.newArgs()
+            ret = ctx.num().accept(self)
         elif (ctx.id_() != None) :
-            retCode , v = ctx.id_().accept(self)
+            nArgs = self.newArgs()
+            ret = ctx.id_().accept(self)
         elif (ctx.bt() != None):
-            retCode , v = ctx.bt().accept(self)
+            nArgs = self.newArgs()
+            ret = ctx.bt().accept(self)
         elif (ctx.bf() != None):
-            retCode , v = ctx.bf().accept(self)
+            nArgs = self.newArgs()
+            ret = ctx.bf().accept(self)
         elif (ctx.strings() != None):
-            retCode , v = ctx.strings().accept(self)
+            nArgs = self.newArgs()
+            ret = ctx.strings().accept(self)
         else:
-            retCode = RET_FAILURE
-        log(LOG_DEBUG , "UID value : {}".format(v) , tid="100bs" )
-        return retCode, v
+            ret.retCode = ret.RETCODE_GENERIC_FAILURE
+        logger.debug( "UID value : {}".format(ret) )
+        return ret
 
-    def visitAssign(self, ctx: test_1Parser.AssignContext , parent_type=DEFAULT):
+    def getReturn(arg):
+        ret = cRet()
+        ret.retCode = ret.RETCODE_INVALID_RET
+        fName = sys._getframe(1).f_code.co_name
+        if arg==None:
+            logger.warning("[{}] : Got None return. ".format(fName) )
+        elif (isinstance(arg , cRet) ):
+            ret = arg
+        else:
+            logger.warning("[{}] : Incorrect return type : {}".format( fName , type(arg)))
+        return ret
+    
+    def visitAssign(self, ctx: test_1Parser.AssignContext  ):
         self.commonVisitor(ctx , "Assign")
         value = None
         newVar = True
         count = ctx.getChildCount()
-        log(LOG_DEBUG , )
+        logger.debug("In assign for : {}".format(ctx.getText()) )
+        args = self.newArgs()
+        ret = cRet()  
+        side = "lvalue"
+        for i in range(count):
+            logger.debug("In assign , child [{}] : [{}]".format(i , ctx.getChild(i).getText() ) )
+            nArgs = self.newArgs()
+            if side == "lvalue":
+                nArgs.lValue = True
+            else: 
+                nArgs.lValue = False
+            if (ctx.getChild(i).getText == "="):
+                side = "rvalue"
+            ret2 = ctx.getChild(i).accept(self )
         if ctx.id_() != None : 
-            log(LOG_DEBUG , "" , tid="100bg")
             ctxId = ctx.id_()
-            retCode , varName = self.visitId_(ctx=ctxId , parent_type=PTYPE_SET_VAL)
-            varName = ctx.id_().getText()
+            nArgs = self.newArgs()
+            nArgs.setValue = True
+            ret = self.visitId_(ctx=ctxId )
+            ret.value = ctx.id_().getText()
         elif ctx.member() != None :
-            log(LOG_DEBUG , "" , tid="100bh")
-            retCode, varName = ctx.member().id_().accept(self)
-            varName = ctx.member().id_().getText()
-        log(LOG_DEBUG , "VarName  : " + str(varName) , tid="100bi" )
-        if (retCode == RET_SUCCESS) and (varName in gVarMap):
-            log( LOG_DEBUG , "Assignment variable already declared. VarName : "+str(varName)+" gVarMap : " + str(gVarMap) , tid="100bf" )
+            nArgs = self.newArgs()
+            ret = ctx.member().id_().accept(self)
+            ret.value = ctx.member().id_().getText()
+        logger.debug("VarName  : {}". format(ret.value)  )
+        if (ret.retCode == RET_SUCCESS) and (ret.value in gVarMap):
+            logger.debug("Assignment variable already declared. VarName : {} ,  gVarMap : ".format(ret.value , gVarMap)  )
             newVar = False
 
         try:
-            retCode , value = ctx.rvalue().accept(self)
+            varName = ret.value
+            nArgs = self.newArgs()
+            ret = ctx.rvalue().accept(self)
             #log(LOG_DEBUG , "rvalue : {}".format(ctx.rvalue()) , tid="100bo")
-            log( LOG_DEBUG , "Derived rvalue : {}  , for string : {}".format(value , ctx.rvalue().getText())  , tid="100bo")
+            logger.debug( "Derived rvalue : {}  , for string : {}".format(ret , ctx.rvalue().getText())  )
             if (ctx.id_() != None) : 
                 # Direct variable assignment.
-                log(LOG_DEBUG , "varName : " + str(varName) + "value : " + str(value) ,tid="100bj"   )
-                gVarMap[varName] = dict(value)
+                logger.debug("varName : {} , value : {}".format(varName , ret.value)   )
+                gVarMap[varName] = dict(ret.value)
             elif (ctx.member() != None) : 
                 # Assign value to particular member of new variable.
-
                 if newVar : 
                     # Assign value to exsiting member, In this case, it should be appended to existing variable if LHS is member type
                     gVarMap[varName] = {}
                 else:
                     parent = gVarMap[varName]
-                log(LOG_DEBUG , "varName : " + str(varName) + "value : " + str(value) ,tid="100bk"   )
-                retCode , tmpVal= self.evalMember(ctx=ctx.member(), memberList= ctx.member().member_candidate(),  ptype=PTYPE_SET_VAL , value = value , depth = 0 , parent = gVarMap[varName])
-                log(LOG_DEBUG , "tmpVal : {} , gvarMap : {}".format(tmpVal , gVarMap) , tid="100bm")
-                gVarMap[varName] = gVarMap[varName] | dict(tmpVal)
+                logger.debug("varName :{} , value : {}  " .format(varName ,  ret.value)   )
+                ret = self.evalMember(ctx=ctx.member(), memberList= ctx.member().member_candidate(),  ptype=PTYPE_SET_VAL , value = value , depth = 0 , parent = gVarMap[varName])
+                logger.debug("tmpVal : {} , gvarMap : {}".format(ret.value , gVarMap) )
+                gVarMap[varName] = gVarMap[varName] | dict(ret.value)
 
         except Exception as e:
-            retCode = RET_FAILURE
-            log(LOG_ERROR , "Failed.. Exception : " + str(e)  , tid="100bl")
-        return retCode , None
+            ret = cRet()
+            ret.retCode =ret.RETCODE_GENERIC_FAILURE
+            logger.error("Failed.. Exception : {} ".format(e) )
+        return ret
 
-    def visitCode(self, ctx: test_1Parser.CodeContext , parent_type=DEFAULT):
+    def visitRoot(self, ctx:test_1Parser.RootContext):
+        args            = self.getArgs()
+        ret             = cRet()
+        ret.rootDefined = True
+        ret.retCode     = ret.RETCODE_SUCCESS
+        return ret
+
+    def visitCode(self, ctx: test_1Parser.CodeContext):
         self.commonVisitor(ctx , "Code")
         return super().visitCode(ctx)
 
-    def visitMember(self, ctx: test_1Parser.MemberContext , parent_type=DEFAULT , parent={} , value=None):
+    def visitMember(self, ctx: test_1Parser.MemberContext ):
         '''
         parent type == member , in case we are visiting member of node.
         parent = dictionary of parent.
         '''
+        args = self.getArgs()
+        logger.debug("Visting children for {}".format(ctx.getText()) )
+        nArgs = self.newArgs()
+        ret = cRet()
+        root = dict_op.ji() 
         v = None
-        if (ctx.ROOT() != None) and ( (0 == len(ctx.ROOT())) or (0 == len(ctx.ROOT())) ) : 
-            logger.debug("ROOT : {} ".format(ctx.ROOT()))
+        level = 0
+        if (ctx.root() != None) and ( (2 > len(ctx.root())) )  : 
+            logger.debug("root : {} ".format(ctx.root()))
         else : 
-            logger.debug("Incorrect ROOT defined. ROOT count = [{}]".format(len(ctx.ROOT())))
+            logger.debug("Incorrect ROOT defined. ROOT count = [{}]".format(len(ctx.root())))
             return RET_FAILURE , v
         
         if (ctx.id_() != None ):
-            first = ctx.id_().getText()
+            rootRet = ctx.id_().accept(self)
         else:
             log(LOG_DEBUG , "Unexpected error, None ID in member." , tid="100bq")
         self.commonVisitor(ctx , "member")
-        logger.debug("first : {} ".format(first ) )
         logger.debug("Member candidatess : {} ".format(ctx.getText()) )
-        if  first != None:
-            if parent_type == PTYPE_MEMBER:
-                if str(first) in parent:
-                    v = parent[str(first)]
+
+        count = ctx.getChildCount()
+        logger.debug("Member has [{}] children.".format(count) )
+        for i in range (count):
+            child   = ctx.getChild(i)
+            nArgs   = self.newArgs()
+            if 0 == i:
+                nArgs.lValue = args.lValue
+                nArgs.sharedJi  = root
+                logger.debug("Checking for : [{}]. ".format(child.getText()) )
+                ret2    = child.accept(self)
+                if isinstance(ret2.value , dict):
+                    root.scan( ret2.value)
                 else : 
-                    log(LOG_ERROR , "Member '" + str(first) + "' not in parent.")
-            elif parent_type == DEFAULT:
-                if isVariable( str(first) ):
-                    v = gVarMap[str(first)]
-                else : 
-                    log(LOG_ERROR , "Variable '" + str(first) + "' not declared.")
-            else:
-                log(LOG_ERROR , "Unknown parent type. Malformed membership.")
+                    logger.warning("Tried to access membership for non dictionary variable. {} ".format(ret2.value) )
+                    ret.retCode = ret.RETCODE_INVALID_PARAMS
+                    return ret
+            else : 
+                nArgs.lValue        = args.lValue
+                nArgs.sharedJi      = root
+                nArgs.level         = level
+                logger.debug("Checking for : [{}]. python type : [{}] ".format(child.getText() , type(child) ) )
+                ret2    = child.accept(self)
+                if (  isinstance(child , test_1Parser.Member_candidateContext) ) : 
+                    logger.debug("Identified mermber candidate type.")
+                    level = level+1
+                
+            if ret2 == None : 
+                logger.warning("RET2 is NONE. ")
+            else : 
+                if (ret2.rootDefined):
+                    ret.rootDefined = True
+            if (ret.rootDefined):
+                # Get this as root
+                pass
         parent = v
-        if ctx.member_candidate() != None :
-            log(LOG_DEBUG, "parent : "+ str(parent) , tid="100at" )
-            success , v = self.evalMember(ctx.member_candidate(0) , memberList=ctx.member_candidate() , parent=parent , depth=0 , ptype=PTYPE_DEFAULT , value = value)
-            log(LOG_DEBUG , " success : "+str(success)+", v : " + str(v)  + "parent : " + str(parent) , tid="100aq")
-            # for i in range(len(ctx.member_candidate())):
-            #     cand = ctx.member_candidate(i)
-            #     log(LOG_DEBUG , "member candidate ::" +str(i) +" ::" + str(ctx.member_candidate(i).getText()) )
-            #     v = self.visitMember_candidate(ctx.member_candidate(i) , parent_type=PTYPE_MEMBER , parent = parent)
-        elif ctx.member() != None :
-            v = self.visitMember(ctx.member() , parent_type=PTYPE_MEMBER , parent = parent)
-        else : 
-            log(LOG_ERROR , "No member OR member candidate!!")
-        log(LOG_DEBUG , "Member v : "+str(v) , tid="100ap"  )
-        return RET_SUCCESS, v
+        ret.value = root
+        ret.retCode = ret.RETCODE_SUCCESS        
+        return ret
 
 
-    def visitMember_candidate(self, ctx: test_1Parser.Member_candidateContext , parent_type=DEFAULT , parent={} , value=None , getDict=False):
+    def visitMember_candidate(self, ctx: test_1Parser.Member_candidateContext ):
         var = None
         success = False
-        retCode = RET_FAILURE
+        ret = cRet()
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         self.commonVisitor(ctx , "member candidate")
-        logger.debug( "parent_type : {} , value : {} ".format( parent_type, value) ) 
+        args = self.getArgs()
+        if (args == None):
+            logger.debug("Custom args not found. ")
+        else :
+            logger.debug("custom args : [{}]".format(args) )
         if ctx.uid() != None:
-            log(LOG_ERROR , "In member candidate , var : " + str(var)  + " , parent : " + str(parent) + " type : " +str(type(parent)) +", uid : " + str(ctx.uid().getText()) , tid="100bd" )
-            retCode, val= ctx.uid().accept(self)
-
-            if type(val) == dict : 
-                log(LOG_WARNING , "Dictionary specified as member.. " , tid="100am")
-            k = val
-            log(LOG_DEBUG , "k : " +k  + " , type : " + str(type(k))  , tid="809kn")
-            if parent_type == PTYPE_SET_VAL :
-                var = {k:value}
-            else:
-                if k in parent :
-                    log(LOG_DEBUG , "In parent , parent[k] = " + str(parent[k]) , tid="100by")
-                    if (type( (parent[k])) == dict) :
-                        log(LOG_DEBUG , "dict" , tid="100bz" )
-                        var = dict(parent[k])
-                    elif (( type(parent[k] )== list) ) : 
-                        log(LOG_DEBUG , "list" , tid="100ca" )
-                        var = list(parent[k])
-                    else:
-                        log(LOG_DEBUG , "single" , tid="100cb" )
-                        var = parent[k]
-                    success = True
-                    log(LOG_DEBUG , "var : " + str(var) , tid="369ho")
-                else : 
-                    log(LOG_ERROR , "ERR! var : " +  str(var) + " , parent : " +str(parent)   , tid="400ij")
-                    success = False
-            if (getDict) :
-                if (k in parent):
-                    var = {k:var}
-                    success = True
-                    logger.debug(LOG_DEBUG , "Parent get dictionary, var : {} ".format(var) )
+            logger.error("In member candidate , var : {} , args : {} , uid : {}".format( var , args , ctx.uid().getText())  )
+            nArgs = self.newArgs()
+            ret2  = ctx.uid().accept(self)
+            logger.debug("level [{}],  RET : [{}]".format(args.level , ret2) )
+            if type(ret2.value) == dict : 
+                logger.warning("Dictionary specified as member.. ")
+            k = ret2.value
+            args.sharedJi.filter(level=args.level , key=ret2.value)
+            logger.debug("Updated shared JI : [{}]".format(args.sharedJi) )
 
         elif ctx.match_b() != None :
-            retCode , var = (ctx.match_b().accept(self))
-            if parent_type == PTYPE_SET_VAL : 
+            nArgs = self.newArgs()
+            ret = (ctx.match_b().accept(self))
+            if args.setValue : 
                 var = {k:var}
             success = True
         elif (ctx.M() != None) :
             log(LOG_DEBUG , "m cand in all members") 
-            var = parent
+            var = {args.value} #parent
             success = True
             # for k,v in parent.items():
                 # var.append()
-        log(LOG_DEBUG , "Returning var : {} , success : {}  ".format(var , success) )
+        logger.debug("Returning var : {} , success : {}  ".format(var , success) )
         if success :
-            retCode = RET_SUCCESS
-        return retCode, var
+            ret.retCode = ret.RETCODE_SUCCESS
+        return ret
 
 
-    def visitExpr(self, ctx: test_1Parser.ExprContext):
+    def visitExpr(self, ctx: test_1Parser.ExprContext  ):
         self.commonVisitor(ctx , "expr")
-        log(LOG_DEBUG , "In visitExpr." , tid="100ag")
+        args = self.getArgs()
+        ret = cRet()
+        logger.debug( "In visitExpr." )
         ans = ""
-        retCode = RET_FAILURE
+        ret.retCode = RET_FAILURE
         if ctx.b_op() != None :
             # Implies, there is num/bracket + expr
-            retCode , op = ctx.b_op().accept(self)
-            retCode , v2 = ctx.expr().accept(self)
+            nArgs = self.newArgs()
+            retOp = ctx.b_op().accept(self)
+            nArgs = self.newArgs()
+            retV2 = ctx.expr().accept(self)
             if ctx.expr_1 != None:
-                retCode, v1 = ctx.expr_1().accept(self)
-                log(LOG_DEBUG , "retCode : {} v1:{}".format(retCode, v1) , tid="100bt")
+                nArgs = self.newArgs()
+                retV1 = ctx.expr_1().accept(self)
+                logger.debug("retV1 : {} ".format(retV1) )
             else:
-                log(LOG_WARNING , "Unexpected condition. " , tid="100aa")
-            log(LOG_DEBUG , "v1 : {} , v2 : {} , op : {}".format(v1 , v2 , op)  , tid="100bp" )
+                logger.warning("Unexpected condition. ")
+            logger.debug( "v1 : {} , v2 : {} , op : {}".format(retV1 , retV2 , retOp)  )
+            if ( (retV1.value == None) or (retV2.value == None) ):
+                ret.retCode = ret.RETCODE_GENERIC_FAILURE;
+                return ret
+            # if ( (isinstance(v1 , dict_op.ji) or isinstance(v1 , dict) ) and 
+            #     (isinstance(v2 , dict_op.ji) or isinstance(v2 , dict) ) ):
+
             if (ctx.b_op() != None ) and (ctx.b_op().math_b_op()!= None):
-                retCode , ans = self.elementWiseOp(v1 , v2 , op)
+                if retOp.value == ".+" :
+                    a = dict_op.ji(retV1.value) 
+                    b = dict_op.ji(retV2.value) 
+                    ret.value = a + b
+                elif retOp.value == ".-" :
+                    a = dict_op.ji(retV1.value) 
+                    b = dict_op.ji(retV2.value) 
+                    ret.value = a - b
+                elif retOp.value == ".*" :
+                    a = dict_op.ji(retV1.value) 
+                    b = dict_op.ji(retV2.value) 
+                    ret.value = a * b
+                elif retOp.value == "./" :
+                    a = dict_op.ji(retV1.value) 
+                    b = dict_op.ji(retV2.value) 
+                    ret.value = a - b
+                elif retOp.value == "+" :
+                    a = dict_op.ji(retV1.value) 
+                    b = dict_op.ji(retV2.value) 
+                    ret.value = a.union(b)
+                elif retOp.value == "-" :
+                    logger.warning("Dict diff not yet implemented. ")
+                    # a = dict_op.ji(retV1.value) 
+                    # b = dict_op.ji(retV2.value) 
+                    # ret.value = a - b
+                logger.debug(" calculated return : [ {} ]".format(ret))
             else:
-                retCode , ans = self.evalDictOp(v1 , v2 , op)
+                pass
         else:
             log(LOG_WARNING , "expression without operator. i.e. simple uid.")
             if ctx.expr_1() != None :
-                retCode, ans = ctx.expr_1().accept(self)
+                nArgs = self.newArgs()
+                ret = ctx.expr_1().accept(self)
             else: 
-                log(LOG_WARNING , "expr_1 not defined : " , tid="100br")
-        log(LOG_DEBUG , "Exit visitexpr. retCode : {} , ans : {} , ctx : {}".format(retCode , ans , ctx.getText() ) , tid="100bn")
-        return retCode , ans
+                logger.warning("expr_1 not defined : " )
+        logger.debug( "Exit visitexpr. retCode : {} , ans : {} , ctx : {}".format(ret , ans , ctx.getText() ) )
+        return ret
 
     def evalDictOp(self , a , b , op ):
-        retCode = RET_FAILURE
-        val = None
+        ret = cRet()
+        ret.value = None
+        if (isinstance(a , dict)):
+            ja = dict_op.ji(a)
+        else : 
+            logger.warning("a is not dict")
+            return ret
+        if (isinstance(b , dict)):
+            jb = dict_op.ji(b)
+        else : 
+            logger.warning("b is not dict")
+            return ret
+        
         if (op == "+"):
-            val = a|b
-            retCode = RET_SUCCESS
+            ret.value = a|b
+            ret.retCode = ret.RETCODE_SUCCESS
         elif (op == "-"):
-            val = dict(a)
-            for k , v  in list(val.items()):
-                if k in b :
-                    del val[k]
-            retCode = RET_SUCCESS
-        return retCode , val
+            ret.value = ja - jb
+            ret.retCode = ret.RETCODE_SUCCESS
+        return ret
 
     def elementWiseOp(self, a , b , op) :
         c = {}
-        retCode = RET_FAILURE
+        ret = cRet()
+        ret.retCode = RET_FAILURE
         log(LOG_DEBUG , "op : "  +str(op) + " a : " + str(a) +" ,  b : " + str(b) + " , c : "+ str(c)\
             + " , type a : "  +str(type(a)) + " , type b : " + str(type(b)) ,tid="100aj"  )
         if (type(a) != dict) or (type(b) != dict) :
@@ -547,49 +699,94 @@ class customVisitor(test_1Visitor):
                     log(LOG_WARNING , "Nodes are leaf and non-leaf, Assigning one random node without operation." , tid="100ad")
                     c[k] = b[k]
                 else:
-                    retCode , c[k] = self.elementWiseOp(a[k] , b[k] , op)
+                    ret2 = self.elementWiseOp(a[k] , b[k] , op)
+                    ret.value[k] = ret2.value
             else:
                 log(LOG_DEBUG , "Skipping key : {} ".format(k) ,tid="100bv" )
-        log(LOG_DEBUG , "op : "  +str(op) + " a : " + str(a) +" ,  b : " + str(b) + " , c : "+ str(c),tid="100ae"  )
-        return retCode, c;
+        logger.debug("op : {}  a : {} ,  b : {} , c : {} ".format(op , a , b , c)   )
+        ret.value = c
+        return ret;
 
+    def newArgs(self):
+        args = cArgs()
+        self.argStack.append(args)
+        return args
 
-    def visitId_(self, ctx: test_1Parser.Id_Context , parent_type=DEFAULT ):
+    def getArgs(self):
+        fName = sys._getframe(1).f_code.co_name
+        if len(self.argStack) > 0:
+            args = self.argStack.pop()
+        else : 
+            logger.warning("Stack underflow for [{}]".format(fName) )
+            return cArgs()
+        if self.verifyCustomArgs(args , fName) : 
+            return args
+        else :
+            logger.warning("Incorrect args found for [{}]".format(args) )
+            return cArgs()
+
+    def verifyCustomArgs(self, args , string):
+        if (not isinstance(args , cArgs)) :
+            logger.debug("[{}] : Custom args not found.".format(string) )
+            return False
+        else : 
+            logger.debug("[{}] : Custom arg was found.".format(string) )
+            return True
+
+    def visitId_(self, ctx: test_1Parser.Id_Context  ):
         self.commonVisitor(ctx, "id")
-        text = str(ctx.ID())
-        retCode , var = getVar(text)
-        if retCode == RET_FAILURE : 
-            log(LOG_WARNING , "variable not in map : " + text + " , ptype : " + str(parent_type) )
-        if parent_type == PTYPE_SET_VAL : 
-            retCode = RET_SUCCESS
-            var = text
-        return retCode , var
+        args= self.getArgs()
+        ret = cRet()
+        ret.text = str(ctx.ID())
+        if not self.verifyCustomArgs(args , "visitId_") : 
+            return ret 
+        ret = getVar(ret.text)
+        if ret.retCode == RET_FAILURE : 
+            logger.warning("variable not in map : {}".format(ret.text)   )
+        if args.setValue : 
+            ret.retCode = ret.RETCODE_INVALID_RET
+            ret.value = ret.text
+        return ret
         
-    def visitRvalue(self, ctx: test_1Parser.RvalueContext , parent_type=DEFAULT):
+    def visitRvalue(self, ctx: test_1Parser.RvalueContext  ):
         print("Non need to explicitly implement the rvalue, as rvalue would just call one of the OR'd methods.")
         return super().visitRvalue(ctx)
 
-    def visitNum(self, ctx: test_1Parser.NumContext , parent_type=DEFAULT):
+    def visitNum(self, ctx: test_1Parser.NumContext  ):
         # self.commonVisitor(self, "num")
+        args = self.getArgs()
+        ret = cRet()
         num = 0
         if ctx.INT() != None : 
             num = int(str(ctx.INT()))
         else : 
             num = float(str(ctx.FLT()))
-        log(LOG_DEBUG , "NUM : " + str(num))
-        return RET_SUCCESS , (num)
+        logger.debug( "NUM : {}".format(num))
+        ret.value = num
+        ret.retCode = ret.RETCODE_SUCCESS
+        return ret
 
-    def visitStrings(self, ctx: test_1Parser.StringsContext):
+    def visitStrings(self, ctx: test_1Parser.StringsContext  ):
+        args = self.getArgs()
+        ret = cRet()
+        ret.retCode = ret.RETCODE_SUCCESS
+        ret.value = str(ctx.STR())[1:-1]
         self.commonVisitor(ctx , "String")
-        log(LOG_DEBUG , "strings return is : " + str(ctx.STR())[1:-1])
+        logger.debug( "strings return is : {} ".format(ret.value))
         # Remove quotes from both the ends..
-        return RET_SUCCESS,  str(ctx.STR())[1:-1]
+        return ret
 
-    def visitBt(self, ctx: test_1Parser.BtContext , parent_type=DEFAULT):
-        return RET_SUCCESS, True;
+    def visitBt(self, ctx: test_1Parser.BtContext  ):
+        ret = cRet()
+        ret.retCode = ret.RETCODE_SUCCESS
+        ret.value = True
+        return ret
 
-    def visitBf(self, ctx: test_1Parser.BfContext , parent_type=DEFAULT):
-        return RET_SUCCESS, False
+    def visitBf(self, ctx: test_1Parser.BfContext  ):
+        ret = cRet()
+        ret.retCode = ret.RETCODE_SUCCESS
+        ret.value = False
+        return ret
 
     def isDict(var):
         return (type(var) == dict)
@@ -598,7 +795,8 @@ class customVisitor(test_1Visitor):
         return (type(var) == list)
 
     def getValue(self , target , var , path=[]):
-        value = None
+        ret = cRet()
+        ret.value = None
         if self.isDict(var) : 
             if self.pathMatch(target=target , path=path , isRegex=False):
                 # Path matches, return current value. 
@@ -606,20 +804,24 @@ class customVisitor(test_1Visitor):
             for k in var.keys():
                 self.getValue(target , path.append(k) , var )
 
-        return RET_FAILURE , []
+        return ret
 
     def setValue(self , target, path , value):
-
-        return RET_FAILURE , False
+        ret = cRet()
+        return ret
 
     def evalMember(self , ctx  , memberList , parent = {} , ptype = PTYPE_DEFAULT , depth = 0 , value = None , getDict=False):
         v = {}
         success = True
         success1 = False
-        retCode = RET_FAILURE
+        ret = cRet()
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         ret1 = RET_SUCCESS
         log(LOG_DEBUG , " In evalMember , PARENT : {}  , memberList : {}  , ptype : {} , value : {}".\
             format(str(parent) , str(memberList[0].getText()) ,str(ptype) , str(value) )  , tid="100ba" )
+        logger.debug("In eval Member for : {}".format(ctx.getText()) )
+        self.visitChildren(ctx)
+        return ret
         if type(parent ) != dict : 
             log (LOG_DEBUG , "Non dict parent. " , tid="100az")
             return RET_FAILURE , {}
@@ -695,7 +897,8 @@ class customVisitor(test_1Visitor):
         '''
         Identify if path is same as defined in target.
         '''
-        retCode = RET_FAILURE
+        ret = cRet()
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         v = False
         log(LOG_DEBUG , getFLoc() + "pathmatch " )
         if ( (type(target) == list) and (type(path)== list) ):
@@ -712,10 +915,11 @@ class customVisitor(test_1Visitor):
         else:
             retCode = RET_FAILURE
             v = False
-        return RET_FAILURE , v
+        return ret
 
     def internalCalls(self , ctx  ):
-        retCode = RET_FAILURE
+        ret = cRet()
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         v = None
         f = ""
         log(LOG_DEBUG , getFLoc() + "Pathmaymatch. " )
@@ -725,14 +929,15 @@ class customVisitor(test_1Visitor):
             v = ""
         else : 
             retCode = RET_FAILURE
-        return retCode , v
+        return ret
 
 
     def pathMayMatch(self , root , path , isRegex):
         '''
         Identify if 'path' can become same as root if it is travered further.
         '''
-        retCode = RET_FAILURE
+        ret = cRet()
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         v = False
         if ( (type(root) == list) and (type(path)== list) ):
             if ( len(root) >= len(path) ) : 
@@ -748,11 +953,12 @@ class customVisitor(test_1Visitor):
         else:
             retCode = RET_FAILURE
             v = False
-        return RET_FAILURE , v
+        return ret
 
 
     def replace(self, a , b , input , isRegex) :
-        retCode = RET_FAILURE
+        ret = cRet()
+        ret.retCode = RET_FAILURE
         v = ""
         try : 
             if (not isRegex):
@@ -771,20 +977,21 @@ class customVisitor(test_1Visitor):
                 retCode = RET_SUCCESS
         except Exception as e : 
             retCode = RET_FAILURE
-        return retCode , v
-
+        return ret
     def evalUnion(self, ctx , a , b , parent_type=PTYPE_DEFAULT) : 
-        return RET_FAILURE , {}
+        ret= cRet()
+        return ret
 
     def evalDiff(self, ctx , a , b , parent_type = PTYPE_DEFAULT):
-        return RET_FAILURE , {} 
+        ret= cRet()
+        return ret
 
 
     def commonVisitor(self, ctx  , ruleName):
         try: 
             abc = ctx.getText()
             count = ctx.getChildCount()
-            log( LOG_DEBUG , "visitor  :" + ruleName +" : " + abc + " ,  child count : " + str(count)  , tid = "099aa" )        
+            logger.debug( "visitor  :{} : {} ,  child count : ".format( ruleName , abc , count) )        
         except Exception as e:
             log(LOG_ERROR , "Exception in commin visitor : {}".format(e)  )
 
@@ -796,10 +1003,14 @@ def isFunction(param):
         return False
 
 def getVar(param):
+    ret = cRet()
     if isVariable(param):
-        return RET_SUCCESS , gVarMap[param]
+        ret.value =  gVarMap[param]
+        ret.retCode = ret.RETCODE_SUCCESS
+        return ret
     else:
-        return RET_FAILURE , None
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
+        return ret
 
 
 def isVariable(param):
