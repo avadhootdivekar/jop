@@ -6,6 +6,7 @@ import sys
 import re
 from antlr4.tree.Trees import Trees
 import logging
+import copy
 
 sys.path.append("/home/container/mounted/jop_repo/")
 import dict_op
@@ -96,7 +97,10 @@ def run_1 (argv , log=logFallBack) :
     print("\n\n")
     visitor = customVisitor()
     p = visitor.visit(tree)
-    logger.debug(SEPERATOR + "gVarMap : {} \nvisitor return : p:".format( gVarMap, p) )
+    logger.debug(SEPERATOR + "gVarMap :  \n" )
+    for k,v in gVarMap.items():
+        logger.debug(" k : [{}] , v : [{}]".format(k,v))
+    logger.debug("visitor return : p:{} ".format(p))
     return
 
 
@@ -106,9 +110,14 @@ class cArgs():
     lValue                          =   False
     level                           =   0
     sharedJi                        =   dict_op.ji()
+    value                           =   None
     def __init__(self):
         inArray     = None
         inDict      = None
+            
+    def __str__(self):
+        return ( "cArg : [ {{ setValue : {} , rootDefined : {} , lValue : {} , level : {} , sharedJi : {}  }} ] ".format(
+                    self.setValue , self.rootDefined  , self.lValue , self.level , self.sharedJi ) )
 
 class cRet():
     RETCODE_SUCCESS                 = "RETURN_SUCCESS"
@@ -399,60 +408,73 @@ class customVisitor(test_1Visitor):
         newVar = True
         count = ctx.getChildCount()
         logger.debug("In assign for : {}".format(ctx.getText()) )
-        args = self.newArgs()
+        nArgs = self.newArgs()
         ret = cRet()  
         side = "lvalue"
-        for i in range(count):
-            logger.debug("In assign , child [{}] : [{}]".format(i , ctx.getChild(i).getText() ) )
-            nArgs = self.newArgs()
-            if side == "lvalue":
-                nArgs.lValue = True
-            else: 
-                nArgs.lValue = False
-            if (ctx.getChild(i).getText == "="):
-                side = "rvalue"
-            ret2 = ctx.getChild(i).accept(self )
+        keyChain = []
+        if ctx.rvalue() != None : 
+            nArgs.lValue = False
+            ret2 = ctx.rvalue().accept(self)
+            value = copy.deepcopy(ret2.value)
         if ctx.id_() != None : 
-            ctxId = ctx.id_()
             nArgs = self.newArgs()
-            nArgs.setValue = True
-            ret = self.visitId_(ctx=ctxId )
-            ret.value = ctx.id_().getText()
+            nArgs.lValue = True
+            nArgs.value = value
+            ret2 = ctx.id_().accept(self)
+            try:
+                varName = ret2.text
+                nArgs = self.newArgs()
+                ret = ctx.rvalue().accept(self)
+                #log(LOG_DEBUG , "rvalue : {}".format(ctx.rvalue()) , tid="100bo")
+                logger.debug( "Derived rvalue : {}  , for string : {}".format(value, ctx.rvalue().getText())  )
+                # Direct variable assignment.
+                logger.debug("varName : {} , value : {}".format(varName , value)   )
+                gVarMap[varName] = (value)
+            except Exception as e:
+                ret = cRet()
+                ret.retCode =ret.RETCODE_GENERIC_FAILURE
+                logger.error("Failed.. Exception : {} ".format(e) )
         elif ctx.member() != None :
             nArgs = self.newArgs()
-            ret = ctx.member().id_().accept(self)
-            ret.value = ctx.member().id_().getText()
+            nArgs.lValue = True
+            nArgs.value = value
+            ret2 = ctx.member().accept(self)
+
+        # for i in range(count):
+        #     logger.debug("In assign , child [{}] : [{}]".format(i , ctx.getChild(i).getText() ) )
+        #     nArgs = self.newArgs()
+        #     if side == "lvalue":
+        #         nArgs.lValue = True
+        #     else: 
+        #         nArgs.lValue = False
+        #     if (ctx.getChild(i).getText() == "="):
+        #         side = "rvalue"
+        #         logger.debug("RValue detected. ")
+        #     ret2 = ctx.getChild(i).accept(self )
+        #     logger.debug("ret : [{}]".format(ret2) )
+        #     if ret2 == None :
+        #         pass
+        #     elif ( (side == "lvalue") and isinstance(ret2.key , list)):
+        #         keyChain = copy.deepcopy(ret2.key)
+        #     elif ( (side=="rvalue") and isinstance(ret2 , cRet) ):
+        #         for i in range(len(keyChain)):
+        #             pass
+
+        # if ctx.id_() != None : 
+        #     ctxId = ctx.id_()
+        #     nArgs = self.newArgs()
+        #     nArgs.setValue = True
+        #     ret = self.visitId_(ctx=ctxId )
+        #     ret.value = ctx.id_().getText()
+        # elif ctx.member() != None :
+        #     nArgs = self.newArgs()
+        #     ret = ctx.member().id_().accept(self)
+        #     ret.value = ctx.member().id_().getText()
         logger.debug("VarName  : {}". format(ret.value)  )
         if (ret.retCode == RET_SUCCESS) and (ret.value in gVarMap):
             logger.debug("Assignment variable already declared. VarName : {} ,  gVarMap : ".format(ret.value , gVarMap)  )
             newVar = False
 
-        try:
-            varName = ret.value
-            nArgs = self.newArgs()
-            ret = ctx.rvalue().accept(self)
-            #log(LOG_DEBUG , "rvalue : {}".format(ctx.rvalue()) , tid="100bo")
-            logger.debug( "Derived rvalue : {}  , for string : {}".format(ret , ctx.rvalue().getText())  )
-            if (ctx.id_() != None) : 
-                # Direct variable assignment.
-                logger.debug("varName : {} , value : {}".format(varName , ret.value)   )
-                gVarMap[varName] = dict(ret.value)
-            elif (ctx.member() != None) : 
-                # Assign value to particular member of new variable.
-                if newVar : 
-                    # Assign value to exsiting member, In this case, it should be appended to existing variable if LHS is member type
-                    gVarMap[varName] = {}
-                else:
-                    parent = gVarMap[varName]
-                logger.debug("varName :{} , value : {}  " .format(varName ,  ret.value)   )
-                ret = self.evalMember(ctx=ctx.member(), memberList= ctx.member().member_candidate(),  ptype=PTYPE_SET_VAL , value = value , depth = 0 , parent = gVarMap[varName])
-                logger.debug("tmpVal : {} , gvarMap : {}".format(ret.value , gVarMap) )
-                gVarMap[varName] = gVarMap[varName] | dict(ret.value)
-
-        except Exception as e:
-            ret = cRet()
-            ret.retCode =ret.RETCODE_GENERIC_FAILURE
-            logger.error("Failed.. Exception : {} ".format(e) )
         return ret
 
     def visitRoot(self, ctx:test_1Parser.RootContext):
@@ -476,8 +498,11 @@ class customVisitor(test_1Visitor):
         nArgs = self.newArgs()
         ret = cRet()
         root = dict_op.ji() 
+        keyChain = []
+        ret.key = keyChain
         v = None
         level = 0
+        logger.debug("args : {}".format(args) )
         if (ctx.root() != None) and ( (2 > len(ctx.root())) )  : 
             logger.debug("root : {} ".format(ctx.root()))
         else : 
@@ -495,6 +520,7 @@ class customVisitor(test_1Visitor):
         logger.debug("Member has [{}] children.".format(count) )
         for i in range (count):
             child   = ctx.getChild(i)
+            logger.debug(" i : [{}] , child : [{}] ".format(i , child.getText()) )
             nArgs   = self.newArgs()
             if 0 == i:
                 nArgs.lValue = args.lValue
@@ -509,25 +535,51 @@ class customVisitor(test_1Visitor):
                     return ret
             else : 
                 nArgs.lValue        = args.lValue
+                if (not (isinstance(root , dict_op.ji) )):
+                    logger.warning("Incorrect dictionary evaluated at : [{}]".format(child.getText()) )
                 nArgs.sharedJi      = root
                 nArgs.level         = level
                 logger.debug("Checking for : [{}]. python type : [{}] ".format(child.getText() , type(child) ) )
+                if i == count : 
+                    nArgs.value = args.value
+                    nArgs.setValue = True
                 ret2    = child.accept(self)
                 if (  isinstance(child , test_1Parser.Member_candidateContext) ) : 
-                    logger.debug("Identified mermber candidate type.")
+                    logger.debug("Identified member candidate type.")
                     level = level+1
-                
+                elif (isinstance(child , test_1Parser.RootContext) ) :
+                    logger.debug("Identified Root location.")            
+                    nArgs.sharedJi  = root
+                    ret.rootDefined = True
+                    level = 0
+
             if ret2 == None : 
                 logger.warning("RET2 is NONE. ")
             else : 
-                if (ret2.rootDefined):
-                    ret.rootDefined = True
-            if (ret.rootDefined):
-                # Get this as root
-                pass
-        parent = v
-        ret.value = root
+                if args.lValue : 
+                    if (ret2.key != None):
+                        keyChain.append(ret2.key)
+                    else : 
+                        logger.warning("Unable to get keychain for LValue at [{}]. ".format(child.getText()) )
+                if (ret.rootDefined):
+                    # Get this as root
+                    pass
+                else : 
+                    if ( isinstance(ret2.value , dict) and (not args.lValue)):
+                        # This is RSide of the assignment, return the copy.
+                        root = dict_op.ji(ret2.value)
+                    elif (isinstance(ret2.value , dict) and args.lValue):
+                        # This is LSide of assignment, return the ref.
+                        # root = ret2.value
+                        logger.debug("LVALUE")
+                    else  :
+                        # This is just value single , return the value.
+                        ret.value = ret2.value # Why ? 
+                        logger.warning("Icorrect value recevied from member candidate. ")
+        if ret.rootDefined : 
+            ret.value = root
         ret.retCode = ret.RETCODE_SUCCESS        
+        logger.debug("ret : [{}]".format(ret) )
         return ret
 
 
@@ -550,8 +602,25 @@ class customVisitor(test_1Visitor):
             if type(ret2.value) == dict : 
                 logger.warning("Dictionary specified as member.. ")
             k = ret2.value
-            args.sharedJi.filter(level=args.level , key=ret2.value)
+            if (args.lValue and (not args.setValue)):
+                if ( not isinstance(args.sharedJi[k] , dict) ) : 
+                    logger.warning(" Not a dictionary member, but not set value. [{}] ".format(ret2.value) )
+                else : 
+                    args.sharedJi = args.sharedJi[k]
+            elif (args.lValue and args.setValue ) : 
+                args.sharedJi[k] = args.value
+            else :
+                args.sharedJi.filter(level=args.level , key=ret2.value)
             logger.debug("Updated shared JI : [{}]".format(args.sharedJi) )
+            if not args.rootDefined : 
+                if ret2.value in args.sharedJi.keys() :
+                    ret.key = ret2.value
+                    ret.value = args.sharedJi[ ret2.value]
+                    logger.debug("Returning value only as : [{}]".format(ret.value))
+                else : 
+                    logger.error("Incorrect key access at [{}]. ".format(ret2.value))
+            else : 
+                pass
 
         elif ctx.match_b() != None :
             nArgs = self.newArgs()
@@ -565,7 +634,6 @@ class customVisitor(test_1Visitor):
             success = True
             # for k,v in parent.items():
                 # var.append()
-        logger.debug("Returning var : {} , success : {}  ".format(var , success) )
         if success :
             ret.retCode = ret.RETCODE_SUCCESS
         return ret
@@ -737,10 +805,11 @@ class customVisitor(test_1Visitor):
         self.commonVisitor(ctx, "id")
         args= self.getArgs()
         ret = cRet()
-        ret.text = str(ctx.ID())
+        text = str(ctx.ID())
         if not self.verifyCustomArgs(args , "visitId_") : 
             return ret 
-        ret = getVar(ret.text)
+        ret = getVar(text)
+        ret.text = text
         if ret.retCode == RET_FAILURE : 
             logger.warning("variable not in map : {}".format(ret.text)   )
         if args.setValue : 
