@@ -660,7 +660,7 @@ class customVisitor(test_1Visitor):
         ret = cRet()
         logger.debug( "In visitExpr." )
         ans = ""
-        ret.retCode = RET_FAILURE
+        ret.retCode = ret.RETCODE_GENERIC_FAILURE
         if ctx.b_op() != None :
             # Implies, there is num/bracket + expr
             nArgs = self.newArgs()
@@ -676,6 +676,11 @@ class customVisitor(test_1Visitor):
             logger.debug( "v1 : {} , v2 : {} , op : {}".format(retV1 , retV2 , retOp)  )
             if ( (retV1.value == None) or (retV2.value == None) ):
                 ret.retCode = ret.RETCODE_GENERIC_FAILURE;
+                return ret
+            elif ( (isinstance(retV1.value , str ) and isinstance(retV2.value , str)) ):
+                logger.debug("Concatenating strings.")
+                if retOp.value == "+" :
+                    ret.value = retV1.value + retV2.value
                 return ret
             # if ( (isinstance(v1 , dict_op.ji) or isinstance(v1 , dict) ) and 
             #     (isinstance(v2 , dict_op.ji) or isinstance(v2 , dict) ) ):

@@ -14,6 +14,7 @@ O5 = I5."xyz";
 O6 = I2."new"."more";
 O7 = I1."abc" + I2."abc";
 O8 = I1."abc" + I2."new"."more";
+O9 = I1."abc" + I2."new"."more"."c";
 
 //O1 = {};
 //     O1."new" = 5;
