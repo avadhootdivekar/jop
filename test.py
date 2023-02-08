@@ -84,5 +84,20 @@ def test2():
 	print("After filter j2 : [{}]".format(j2))
 
 
+def test3():
+
+	v1={"a1" : "v1" , "a2" : "v2" , "a3" : {"a4" : "v4" , "a5" : {"a6" : "v6"}}}
+	v2={"b1" : "vb1" , "b2" : "vb2" , "b3" : {"b4" : "vb4" , "b5" : {"b6" : "vb6"}}}
+	r = dict_op.refManager()
+	print("Original V1 : {}".format(v1))
+	r.setRef(v1 , key="a2")
+	print( "r : [{}] \nRequested value : [{}] ".format( r , r.getValue() ) )
+	r.updateValue("newValue")
+	print( "Updated V1 : {}".format(v1) )
+
+	return 
+
 # op_check()
-test2()
+# test2()
+
+test3()

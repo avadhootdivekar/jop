@@ -27,6 +27,74 @@ class Infix:
 
 union=Infix(lambda x , y : union(x,y))
 
+class refManager():
+
+	obj = None
+	index = None
+	key = None
+
+	def __init__(self):
+		return
+	
+	def __str__(self):
+		return " obj : [{}] , key : [{}] , index : [{}]  ".format(self.obj , self.key , self.index)
+
+	def setRef(self , obj , key = None , index = None):
+		success = False
+		if (None != obj) and ( (None != index ) or (None != key) ) : 
+			self.obj = obj
+			if ( isinstance(self.obj , dict) and (None != key) ):
+				self.key = key
+				success = True
+			elif ( isinstance(self.obj , list) and ( isinstance(index , int) and (len(self.obj) > index) ) ) :
+				self.index = index
+				success = True
+			else : 
+				success = False
+		else :  
+			success = False
+		if (not success):
+			log.warning("Invalid parameters. obj : [{}] , key : [{}] , index : [{}]".format(obj , key , index) )
+		return success
+	
+	def updateValue(self , value=None):
+		success = False
+		if (isinstance(self.obj , dict) and (self.key != None) ):
+			if (self.key in self.obj) :
+				self.obj[self.key] = value
+				success = True
+			else : 
+				log.warning("key : [{}] not found in obj : [{}]".format(self.key , self.obj) )
+		elif ( isinstance(self.obj , list) and (isinstance(self.index , int)) ) :
+			if (len(self.obj) > self.index):
+				self.obj[self.index] = value
+				success = True
+			else : 
+				log.warning("Index [{}] out of bounds for list : [{}]. ".format(self.index , self.obj) )
+		else : 
+			log.warning("Reference not valid. obj : [{}] , key : [{}] , index : [{}]".format(self.obj , self.key , self.index) )
+		return success
+	
+	def getValue(self):
+		success = False
+		value = None
+		if (isinstance(self.obj , dict) and (self.key != None) ):
+			if (self.key in self.obj) :
+				value = self.obj[self.key]
+				success = True
+			else : 
+				log.warning("key : [{}] not found in obj : [{}]".format(self.key , self.obj) )
+		elif ( isinstance(self.obj , list) and (isinstance(self.index , int)) ) :
+			if (len(self.obj) > self.index):
+				value = self.obj[self.index] 
+				success = True
+			else : 
+				log.warning("Index [{}] out of bounds for list : [{}]. ".format(self.index , self.obj) )
+		else : 
+			log.warning("Reference not valid. obj : [{}] , key : [{}] , index : [{}]".format(self.obj , self.key , self.index) )
+		return success , value
+
+
 class response():
 	RET_FAILURE = "RET_FAILURE"
 	RET_SUCCESS = "RET_SUCCESS"
@@ -133,7 +201,7 @@ class ji (dict ):
 		if ( (key != None) and (keyRegex != None) ):
 			log.info("Key as well as keyRegex specified, please spcify only one.")
 		# Do same for value
-		filter(root=self , level=level , key=key , keyRegex=keyRegex , value=value , valueRegex=valueRegex)
+		return filter(root=self , level=level , key=key , keyRegex=keyRegex , value=value , valueRegex=valueRegex)
 
 def depth(a):
 	if isinstance(a, ji) or isinstance(a , dict):
@@ -154,6 +222,7 @@ def getRandom(maxDepth=0):
 
 
 def filter( root = {} , level=0 , key=None , value=None, keyRegex=None , valueRegex=None ):
+	ret = []
 	log.debug("Filtering for level [{}] , key [{}] , value [{}] , keyRegex [{}] , valueRegex [{}]".format(level , key , value , keyRegex , valueRegex) )
 	retDefault = None
 	if ( (key != None) and (keyRegex != None) ):
@@ -185,18 +254,30 @@ def filter( root = {} , level=0 , key=None , value=None, keyRegex=None , valueRe
 				if (value != None) and (value == v ):
 					valueMatch = True				
 				if keyMatch or valueMatch:
+					ret = refManager()
+					ret.setRef(obj=root , key=k)
 					log.debug("Match found for key [{}]".format(k))
 				else :
 					log.debug("No match, deleting key [{}] from root [{}]".format(k , root))
 					root.__delitem__(k) 
 			elif ( level > 0) : 
 				if ( isinstance(v , dict) or isinstance(v , ji) ):
-					filter(root=v , level=(level-1) , key=key , keyRegex=keyRegex , value=value , valueRegex=valueRegex)
+					ref = filter(root=v , level=(level-1) , key=key , keyRegex=keyRegex , value=value , valueRegex=valueRegex)
+					if (isinstance(ref , list)) : 
+						ret = ret + ref
+					elif (isinstance(ref , refManager ) ):
+						ret.append(refManager)
+					elif (ref == None) : 
+						pass
+					else : 
+						log.warning("Ref [{}] received and discarded. ".format(ref) )
+						
 			else : 
 				log.warning("Incorrect level [{}]".format(level))
 	else : 
 		log.warning("Incorrect root [{}]".format(root))
-
+	log.debug("Ret is : [{}]".format(ret))
+	return ret
 
 	
 

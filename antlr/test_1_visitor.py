@@ -111,6 +111,7 @@ class cArgs():
     level                           =   0
     sharedJi                        =   dict_op.ji()
     value                           =   None
+    refs                            =   None
     def __init__(self):
         inArray     = None
         inDict      = None
@@ -132,6 +133,7 @@ class cRet():
     rootDefined                     = False
     sharedJi                        = dict_op.ji()
     varValue                        = None
+    refs                            = None
     def __init__(self):
         retCode     = self.RETCODE_GENERIC_FAILURE
     
@@ -502,6 +504,7 @@ class customVisitor(test_1Visitor):
         ret.key = keyChain
         v = None
         level = 0
+        localRefs = None
         logger.debug("args : {}".format(args) )
         if (ctx.root() != None) and ( (2 > len(ctx.root())) )  : 
             logger.debug("root : {} ".format(ctx.root()))
@@ -522,6 +525,7 @@ class customVisitor(test_1Visitor):
             child   = ctx.getChild(i)
             logger.debug(" i : [{}] , child : [{}] ".format(i , child.getText()) )
             nArgs   = self.newArgs()
+            nArgs.refs = localRefs
             if 0 == i:
                 nArgs.lValue = args.lValue
                 nArgs.sharedJi  = root
@@ -556,6 +560,8 @@ class customVisitor(test_1Visitor):
             if ret2 == None : 
                 logger.warning("RET2 is NONE. ")
             else : 
+                localRefs = ret2.refs
+                logger.debug("Refs : [{}]".format(localRefs) )
                 if args.lValue : 
                     if (ret2.key != None):
                         keyChain.append(ret2.key)
@@ -565,9 +571,13 @@ class customVisitor(test_1Visitor):
                     # Get this as root
                     pass
                 else : 
-                    if ( isinstance(ret2.value , dict) and (not args.lValue)):
+                    if ( isinstance(ret2.value , dict) and (not args.lValue) and (ret.rootDefined)):
                         # This is RSide of the assignment, return the copy.
                         root = dict_op.ji(ret2.value)
+                        logger.debug("Set root to [{}] ".format(root) )
+                    elif (isinstance(ret2.value , dict) and (not args.lValue) and (not ret.rootDefined)):
+                        ret.value = ret2.value
+                        logger.debug("ret set to : [{}] ".format(ret) )
                     elif (isinstance(ret2.value , dict) and args.lValue):
                         # This is LSide of assignment, return the ref.
                         # root = ret2.value
@@ -606,16 +616,23 @@ class customVisitor(test_1Visitor):
                 if ( not isinstance(args.sharedJi[k] , dict) ) : 
                     logger.warning(" Not a dictionary member, but not set value. [{}] ".format(ret2.value) )
                 else : 
-                    args.sharedJi = args.sharedJi[k]
+                    ret.refs = dict_op.refManager()
+                    if (args.refs == None ):
+                        ret.refs.setRef(args.sharedJi , key = k)
+                    else:
+                        ret.refs.setRef(args.refs , key = k)
             elif (args.lValue and args.setValue ) : 
-                args.sharedJi[k] = args.value
+                args.refs.updateValue(args.value)
             else :
-                args.sharedJi.filter(level=args.level , key=ret2.value)
+                if (ret2.value in args.sharedJi):
+                    ret.refs = args.sharedJi.filter(level=args.level , key=ret2.value)
+                    logger.debug("Ref is : [{}]".format(ret.refs) )
             logger.debug("Updated shared JI : [{}]".format(args.sharedJi) )
             if not args.rootDefined : 
-                if ret2.value in args.sharedJi.keys() :
+                if  (args.refs == None) and (ret2.value in args.sharedJi.keys()) :
                     ret.key = ret2.value
                     ret.value = args.sharedJi[ ret2.value]
+                    args.sharedJi = copy.deepcopy(ret.value)
                     logger.debug("Returning value only as : [{}]".format(ret.value))
                 else : 
                     logger.error("Incorrect key access at [{}]. ".format(ret2.value))
