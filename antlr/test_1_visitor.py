@@ -109,7 +109,7 @@ class cArgs():
     rootDefined                     =   False
     lValue                          =   False
     level                           =   0
-    sharedJi                        =   dict_op.ji()
+    sharedJi                        =   None
     value                           =   None
     refs                            =   None
     def __init__(self):
@@ -117,8 +117,8 @@ class cArgs():
         inDict      = None
             
     def __str__(self):
-        return ( "cArg : [ {{ setValue : {} , rootDefined : {} , lValue : {} , level : {} , sharedJi : {}  }} ] ".format(
-                    self.setValue , self.rootDefined  , self.lValue , self.level , self.sharedJi ) )
+        return ( "cArg : [ {{ setValue : {} , rootDefined : {} , lValue : {} , level : {} , sharedJi : {} , refs : {} }} ] ".format(
+                    self.setValue , self.rootDefined  , self.lValue , self.level , self.sharedJi , self.refs ) )
 
 class cRet():
     RETCODE_SUCCESS                 = "RETURN_SUCCESS"
@@ -499,12 +499,13 @@ class customVisitor(test_1Visitor):
         logger.debug("Visting children for {}".format(ctx.getText()) )
         nArgs = self.newArgs()
         ret = cRet()
-        root = dict_op.ji() 
+        root = dict_op.ji( {"root" : None} )  
         keyChain = []
         ret.key = keyChain
         v = None
         level = 0
-        localRefs = None
+        localRef = dict_op.refManager()
+        localRef.setRef(root , key="root")
         logger.debug("args : {}".format(args) )
         if (ctx.root() != None) and ( (2 > len(ctx.root())) )  : 
             logger.debug("root : {} ".format(ctx.root()))
@@ -525,18 +526,21 @@ class customVisitor(test_1Visitor):
             child   = ctx.getChild(i)
             logger.debug(" i : [{}] , child : [{}] ".format(i , child.getText()) )
             nArgs   = self.newArgs()
-            nArgs.refs = localRefs
+            nArgs.refs = localRef
+            logger.debug("new Refs : {}".format(nArgs.refs) )
             if 0 == i:
                 nArgs.lValue = args.lValue
                 nArgs.sharedJi  = root
+                nArgs.refs.setRef(root , key="root")
                 logger.debug("Checking for : [{}]. ".format(child.getText()) )
                 ret2    = child.accept(self)
                 if isinstance(ret2.value , dict):
-                    root.scan( ret2.value)
+                    nArgs.refs.updateValue( ret2.value)
                 else : 
                     logger.warning("Tried to access membership for non dictionary variable. {} ".format(ret2.value) )
                     ret.retCode = ret.RETCODE_INVALID_PARAMS
                     return ret
+                logger.debug("new Refs : {}".format(nArgs.refs) )
             else : 
                 nArgs.lValue        = args.lValue
                 if (not (isinstance(root , dict_op.ji) )):
@@ -557,11 +561,11 @@ class customVisitor(test_1Visitor):
                     ret.rootDefined = True
                     level = 0
 
+            logger.debug("root : {}".format(root))
             if ret2 == None : 
                 logger.warning("RET2 is NONE. ")
-            else : 
-                localRefs = ret2.refs
-                logger.debug("Refs : [{}]".format(localRefs) )
+            else :
+                logger.debug("Refs : [{}]".format(localRef) )
                 if args.lValue : 
                     if (ret2.key != None):
                         keyChain.append(ret2.key)
@@ -571,21 +575,7 @@ class customVisitor(test_1Visitor):
                     # Get this as root
                     pass
                 else : 
-                    if ( isinstance(ret2.value , dict) and (not args.lValue) and (ret.rootDefined)):
-                        # This is RSide of the assignment, return the copy.
-                        root = dict_op.ji(ret2.value)
-                        logger.debug("Set root to [{}] ".format(root) )
-                    elif (isinstance(ret2.value , dict) and (not args.lValue) and (not ret.rootDefined)):
-                        ret.value = ret2.value
-                        logger.debug("ret set to : [{}] ".format(ret) )
-                    elif (isinstance(ret2.value , dict) and args.lValue):
-                        # This is LSide of assignment, return the ref.
-                        # root = ret2.value
-                        logger.debug("LVALUE")
-                    else  :
-                        # This is just value single , return the value.
-                        ret.value = ret2.value # Why ? 
-                        logger.warning("Icorrect value recevied from member candidate. ")
+                    ret.value = ret2.value
         if ret.rootDefined : 
             ret.value = root
         ret.retCode = ret.RETCODE_SUCCESS        
@@ -604,6 +594,15 @@ class customVisitor(test_1Visitor):
             logger.debug("Custom args not found. ")
         else :
             logger.debug("custom args : [{}]".format(args) )
+
+        ok , root = args.refs.getValue()
+        if not ok : 
+            logger.warning("Ref access failed. ")
+            ret.retCode = ret.RETCODE_INVALID_PARAMS
+        logger.debug("ROOT : {}".format(root) )
+        if ( not ( isinstance(root , dict) or isinstance(root , dict_op.ji) ) ): 
+            logger.warning("root is of type : [{}]".format(type(root)) )
+
         if ctx.uid() != None:
             logger.error("In member candidate , var : {} , args : {} , uid : {}".format( var , args , ctx.uid().getText())  )
             nArgs = self.newArgs()
@@ -612,32 +611,31 @@ class customVisitor(test_1Visitor):
             if type(ret2.value) == dict : 
                 logger.warning("Dictionary specified as member.. ")
             k = ret2.value
+            
             if (args.lValue and (not args.setValue)):
-                if ( not isinstance(args.sharedJi[k] , dict) ) : 
+                if ( not isinstance(root[k] , dict) ) : 
                     logger.warning(" Not a dictionary member, but not set value. [{}] ".format(ret2.value) )
                 else : 
-                    ret.refs = dict_op.refManager()
-                    if (args.refs == None ):
-                        ret.refs.setRef(args.sharedJi , key = k)
-                    else:
-                        ret.refs.setRef(args.refs , key = k)
+                    args.refs.updateValue(k)
+                logger.debug("Ret ref : [{}]".format(ret.refs))
             elif (args.lValue and args.setValue ) : 
                 args.refs.updateValue(args.value)
-            else :
-                if (ret2.value in args.sharedJi):
-                    ret.refs = args.sharedJi.filter(level=args.level , key=ret2.value)
-                    logger.debug("Ref is : [{}]".format(ret.refs) )
-            logger.debug("Updated shared JI : [{}]".format(args.sharedJi) )
-            if not args.rootDefined : 
-                if  (args.refs == None) and (ret2.value in args.sharedJi.keys()) :
+                ret.refs = args.refs
+            elif (not args.lValue) and (not args.rootDefined )  :
+                if (ret2.value in root.keys()) :
                     ret.key = ret2.value
-                    ret.value = args.sharedJi[ ret2.value]
-                    args.sharedJi = copy.deepcopy(ret.value)
+                    ret.value = root[ret.key]
+                    args.refs.updateValue( ret.value)
                     logger.debug("Returning value only as : [{}]".format(ret.value))
                 else : 
                     logger.error("Incorrect key access at [{}]. ".format(ret2.value))
+            elif ( (not args.lvalue ) and (args.rootDefined) ) :
+                if (ret2.value in root):
+                    root.filter(level=args.level , key=ret2.value)
+                logger.debug("Updated shared JI : [{}]".format(args.sharedJi) )
             else : 
-                pass
+                logger.debug("Error condition. ")
+            logger.debug("Updated shared JI : [{}]".format(args.sharedJi) )
 
         elif ctx.match_b() != None :
             nArgs = self.newArgs()

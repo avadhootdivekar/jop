@@ -94,7 +94,10 @@ def test3():
 	print( "r : [{}] \nRequested value : [{}] ".format( r , r.getValue() ) )
 	r.updateValue("newValue")
 	print( "Updated V1 : {}".format(v1) )
-
+	q = r 
+	print(" Q : {} , R : {} ".format(q , r ) )
+	q.updateValue("latest value")
+	print(" Q : {} , R : {} ".format(q , r ) )
 	return 
 
 # op_check()
