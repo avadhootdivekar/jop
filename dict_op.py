@@ -94,6 +94,22 @@ class refManager():
 			log.warning("Reference not valid. obj : [{}] , key : [{}] , index : [{}]".format(self.obj , self.key , self.index) )
 		return success , value
 
+class matchCriteria():
+
+	key 		= None
+	keyRegex	= None
+	value 		= None
+	valueRegex	= None
+	refs 		= None
+	level       = 0
+
+	def __init__(self) : 
+		pass
+
+	def __str__(self):
+		d = {"key" : self.key , "keyRegex" : self.keyRegex , "value" : self.value ,
+       			"valueRegex" : self.valueRegex , "refs" : self.refs , "level" : self.level}
+		return "{}".format(d)
 
 class response():
 	RET_FAILURE = "RET_FAILURE"
@@ -281,3 +297,34 @@ def filter( root = {} , level=0 , key=None , value=None, keyRegex=None , valueRe
 
 	
 
+def getRefs(root , m):
+	arr = []
+	log.debug(" Root : {} , m : {} ".format(root , m) )
+	if ( not (isinstance(root , dict ) or isinstance(root , ji)) ):
+		log.error("Incorrrect root of type [{}] defined : {}".format(type(root) , root) )
+		return arr
+	if (not isinstance(m , matchCriteria) ) : 
+		log.error("Incorrect matchCriteria [type : {} ] , value : {}".format(type(m) , m ) )
+		return arr
+	if (m.level == 0   or   m.level == -1 ) : 
+		for k,v in root.items() :
+			match = False
+			if (k == m.key   or v == m.value):
+				match = True
+				# TODO : Add regex support
+			if match : 
+				r = refManager()
+				r.setRef(root , k)
+				arr.append(r)
+	if (m.level > 0 or  m.level == -1): 
+		if (m.level > 0):
+			newM = copy.deepcopy(m)
+			newM.level = newM.level - 1
+		else : 
+			newM = m
+		for k , v  in root.items() : 
+			r = getRefs(v , newM )
+			if (len(r) > 0 ):
+				for i in range(len(r)):
+					arr.append(r[i]) 
+	return arr

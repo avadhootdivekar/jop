@@ -100,7 +100,22 @@ def test3():
 	print(" Q : {} , R : {} ".format(q , r ) )
 	return 
 
+def test4() : 
+
+	v1={"a1" : "v1" , "a2" : "v2" , "a3" : {"a4" : "v4" , "a5" : {"a6" : "v6" , "a2" : "v3.2"} , "a2" : "v2.2" }}
+	v2={"b1" : "vb1" , "b2" : "vb2" , "b3" : {"b4" : "vb4" , "b5" : {"b6" : "vb6"}}}
+	m = dict_op.matchCriteria()
+	m.level = -1
+	m.key = "a2"
+	out = dict_op.getRefs(v1 , m)
+	print("Output length : {} , {}".format(len(out) , out) )
+	for i in range(len(out)):
+		print("Output {} : {}".format( i , out[i].getValue()[1]) )
+	return
+
 # op_check()
 # test2()
 
-test3()
+# test3()
+
+test4()
