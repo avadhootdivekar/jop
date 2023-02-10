@@ -179,12 +179,6 @@ class customListener(test_1Listener):
         print("customListener a : " + abc)
         return super().enterA(ctx)
 
-
-    # def enterAlmostAll(self, ctx: test_1Parser.AlmostAllContext):
-    #     abc = ctx.getText()
-    #     print("customListener almost all: " + abc)
-    #     return super().enterAlmostAll(ctx)
-
     def enterMember(self, ctx: test_1Parser.MemberContext):
         abc = ctx.getText()
         print("customListener member : " + abc)
@@ -441,37 +435,13 @@ class customVisitor(test_1Visitor):
             nArgs.lValue = True
             nArgs.value = value
             ret2 = ctx.member().accept(self)
-
-        # for i in range(count):
-        #     logger.debug("In assign , child [{}] : [{}]".format(i , ctx.getChild(i).getText() ) )
-        #     nArgs = self.newArgs()
-        #     if side == "lvalue":
-        #         nArgs.lValue = True
-        #     else: 
-        #         nArgs.lValue = False
-        #     if (ctx.getChild(i).getText() == "="):
-        #         side = "rvalue"
-        #         logger.debug("RValue detected. ")
-        #     ret2 = ctx.getChild(i).accept(self )
-        #     logger.debug("ret : [{}]".format(ret2) )
-        #     if ret2 == None :
-        #         pass
-        #     elif ( (side == "lvalue") and isinstance(ret2.key , list)):
-        #         keyChain = copy.deepcopy(ret2.key)
-        #     elif ( (side=="rvalue") and isinstance(ret2 , cRet) ):
-        #         for i in range(len(keyChain)):
-        #             pass
-
-        # if ctx.id_() != None : 
-        #     ctxId = ctx.id_()
-        #     nArgs = self.newArgs()
-        #     nArgs.setValue = True
-        #     ret = self.visitId_(ctx=ctxId )
-        #     ret.value = ctx.id_().getText()
-        # elif ctx.member() != None :
-        #     nArgs = self.newArgs()
-        #     ret = ctx.member().id_().accept(self)
-        #     ret.value = ctx.member().id_().getText()
+            if ( (isinstance(ret2 , cRet)) and (isinstance(ret2.value , list))  ):
+                logger.debug("test")
+                refList = ret2.value
+                if (len(refList) > 0):
+                    for ref in refList : 
+                        logger.debug("Updating ref : {}".format(ref) )
+                        ref.updateValue(value)
         logger.debug("VarName  : {}". format(ret.value)  )
         if (ret.retCode == RET_SUCCESS) and (ret.value in gVarMap):
             logger.debug("Assignment variable already declared. VarName : {} ,  gVarMap : ".format(ret.value , gVarMap)  )
@@ -499,10 +469,7 @@ class customVisitor(test_1Visitor):
         logger.debug("Visting children for {}".format(ctx.getText()) )
         nArgs = self.newArgs()
         ret = cRet()
-        root = dict_op.ji( {"root" : None} )  
-        keyChain = []
-        ret.key = keyChain
-        v = None
+        root = dict_op.ji( {"root" : []} )  
         level = 0
         localRef = dict_op.refManager()
         localRef.setRef(root , key="root")
@@ -531,11 +498,11 @@ class customVisitor(test_1Visitor):
             if 0 == i:
                 nArgs.lValue = args.lValue
                 nArgs.sharedJi  = root
-                nArgs.refs.setRef(root , key="root")
+                localRef.setRef(root , key="root")
                 logger.debug("Checking for : [{}]. ".format(child.getText()) )
                 ret2    = child.accept(self)
                 if isinstance(ret2.value , dict):
-                    nArgs.refs.updateValue( ret2.value)
+                    localRef.updateValue( [ret2.refs])
                 else : 
                     logger.warning("Tried to access membership for non dictionary variable. {} ".format(ret2.value) )
                     ret.retCode = ret.RETCODE_INVALID_PARAMS
@@ -548,10 +515,8 @@ class customVisitor(test_1Visitor):
                 nArgs.sharedJi      = root
                 nArgs.level         = level
                 logger.debug("Checking for : [{}]. python type : [{}] ".format(child.getText() , type(child) ) )
-                if i == count : 
-                    nArgs.value = args.value
-                    nArgs.setValue = True
                 ret2    = child.accept(self)
+
                 if (  isinstance(child , test_1Parser.Member_candidateContext) ) : 
                     logger.debug("Identified member candidate type.")
                     level = level+1
@@ -565,26 +530,33 @@ class customVisitor(test_1Visitor):
             if ret2 == None : 
                 logger.warning("RET2 is NONE. ")
             else :
-                logger.debug("Refs : [{}]".format(localRef) )
-                if args.lValue : 
-                    if (ret2.key != None):
-                        keyChain.append(ret2.key)
-                    else : 
-                        logger.warning("Unable to get keychain for LValue at [{}]. ".format(child.getText()) )
-                if (ret.rootDefined):
-                    # Get this as root
-                    pass
-                else : 
-                    ret.value = ret2.value
-        if ret.rootDefined : 
-            ret.value = root
+                ok , v = localRef.getValue()
+                if not ok : 
+                    logger.warning("Localref getvalue failed")
+                s = ""
+                for i in v:
+                    s += "\n{}".format(i)
+                logger.debug("Refs : [{}] , {}".format(localRef , s) )
+
+        ok , v = localRef.getValue()
+        if not ok : 
+            logger.warning("Localref getvalue failed")
+        if len(v) == 0 : 
+            logger.warning("No match found !!!")
+        elif ( (not args.lValue) and (len(v) == 1) ): 
+            ok , v2 = v[0].getValue()
+            if ok :
+                ret.value = copy.deepcopy( v2 )
+            else : 
+                logger.warning("Unable to get value.")
+        elif (args.lValue):
+            ret.value = v
         ret.retCode = ret.RETCODE_SUCCESS        
         logger.debug("ret : [{}]".format(ret) )
         return ret
 
 
     def visitMember_candidate(self, ctx: test_1Parser.Member_candidateContext ):
-        var = None
         success = False
         ret = cRet()
         ret.retCode = ret.RETCODE_GENERIC_FAILURE
@@ -595,60 +567,50 @@ class customVisitor(test_1Visitor):
         else :
             logger.debug("custom args : [{}]".format(args) )
 
-        ok , root = args.refs.getValue()
+        ok , refList = args.refs.getValue()
         if not ok : 
             logger.warning("Ref access failed. ")
             ret.retCode = ret.RETCODE_INVALID_PARAMS
-        logger.debug("ROOT : {}".format(root) )
-        if ( not ( isinstance(root , dict) or isinstance(root , dict_op.ji) ) ): 
-            logger.warning("root is of type : [{}]".format(type(root)) )
+        logger.debug("REF LIST : {}".format(refList) )
+        if ( not ( isinstance(refList, list) ) ): 
+            logger.warning("reflist is of type : [{}]".format(type(refList)) )
 
         if ctx.uid() != None:
-            logger.error("In member candidate , var : {} , args : {} , uid : {}".format( var , args , ctx.uid().getText())  )
             nArgs = self.newArgs()
             ret2  = ctx.uid().accept(self)
             logger.debug("level [{}],  RET : [{}]".format(args.level , ret2) )
             if type(ret2.value) == dict : 
                 logger.warning("Dictionary specified as member.. ")
             k = ret2.value
-            
-            if (args.lValue and (not args.setValue)):
-                if ( not isinstance(root[k] , dict) ) : 
-                    logger.warning(" Not a dictionary member, but not set value. [{}] ".format(ret2.value) )
+            if ( not args.lValue): 
+                if ( not args.rootDefined): 
+                    ok , d = refList[0].getValue()
+                    logger.debug("Ref 0 : {}".format(d) )
+                    if ok and ((isinstance(d , dict)) and (k in d.keys())):
+                        refList[0] = dict_op.refManager()
+                        refList[0].setRef(d , k)
+                        logger.debug("test")
                 else : 
-                    args.refs.updateValue(k)
-                logger.debug("Ret ref : [{}]".format(ret.refs))
-            elif (args.lValue and args.setValue ) : 
-                args.refs.updateValue(args.value)
-                ret.refs = args.refs
-            elif (not args.lValue) and (not args.rootDefined )  :
-                if (ret2.value in root.keys()) :
-                    ret.key = ret2.value
-                    ret.value = root[ret.key]
-                    args.refs.updateValue( ret.value)
-                    logger.debug("Returning value only as : [{}]".format(ret.value))
-                else : 
-                    logger.error("Incorrect key access at [{}]. ".format(ret2.value))
-            elif ( (not args.lvalue ) and (args.rootDefined) ) :
-                if (ret2.value in root):
-                    root.filter(level=args.level , key=ret2.value)
-                logger.debug("Updated shared JI : [{}]".format(args.sharedJi) )
-            else : 
-                logger.debug("Error condition. ")
-            logger.debug("Updated shared JI : [{}]".format(args.sharedJi) )
+                    refList[0].filter(level=args.level , key=ret2.value)
+                    logger.debug("test")
+            else :
+                for refIndex in range(len(refList)) :  
+                    logger.debug("test")
+                    newRef = dict_op.getRefs(refList[refIndex] , k)
+                    refList.pop(refIndex)
+                    if (len(newRef) > 0 ):
+                        logger.debug("test")
+                        for eachRef in newRef : 
+                            refList.append(eachRef)
+
 
         elif ctx.match_b() != None :
             nArgs = self.newArgs()
             ret = (ctx.match_b().accept(self))
-            if args.setValue : 
-                var = {k:var}
             success = True
         elif (ctx.M() != None) :
             log(LOG_DEBUG , "m cand in all members") 
-            var = {args.value} #parent
             success = True
-            # for k,v in parent.items():
-                # var.append()
         if success :
             ret.retCode = ret.RETCODE_SUCCESS
         return ret
@@ -899,113 +861,6 @@ class customVisitor(test_1Visitor):
         ret = cRet()
         return ret
 
-    def evalMember(self , ctx  , memberList , parent = {} , ptype = PTYPE_DEFAULT , depth = 0 , value = None , getDict=False):
-        v = {}
-        success = True
-        success1 = False
-        ret = cRet()
-        ret.retCode = ret.RETCODE_GENERIC_FAILURE
-        ret1 = RET_SUCCESS
-        log(LOG_DEBUG , " In evalMember , PARENT : {}  , memberList : {}  , ptype : {} , value : {}".\
-            format(str(parent) , str(memberList[0].getText()) ,str(ptype) , str(value) )  , tid="100ba" )
-        logger.debug("In eval Member for : {}".format(ctx.getText()) )
-        self.visitChildren(ctx)
-        return ret
-        if type(parent ) != dict : 
-            log (LOG_DEBUG , "Non dict parent. " , tid="100az")
-            return RET_FAILURE , {}
-        if len(memberList) > 1:
-            log(LOG_DEBUG , "Going down a member..") 
-            if memberList[0].M() :
-                log(LOG_DEBUG , "Encountered a * .")
-                if (ptype == PTYPE_DEFAULT) : 
-                    log(LOG_WARNING , "Received default parent type for *, returning tree type.")
-                    retCode = RET_TREE
-                for key_each in parent.keys() :
-                    retCode , val =  self.evalMember(ctx , memberList=memberList[1:] ,parent=parent[key_each] , depth = (depth +1) , ptype=PTYPE_GET_TREE  , value = value) 
-                    log(LOG_DEBUG , "retCode : " + str(retCode) + " , val : " +str(val) , tid="254dc"  )
-                    if (retCode == RET_SUCCESS) :
-                        if ptype == PTYPE_DEFAULT:
-                            v[key_each] = val
-                        elif ptype == PTYPE_GET_TREE :
-                            v[key_each] = val
-                        else:
-                            log(LOG_WARNING , "Uidentified ptype" , tid="100aw")
-                    log(LOG_DEBUG , "v : " + str(v) , tid="465kn")
-                    retCode = RET_TREE
-            elif memberList[0].uid() :
-                retCode , var = memberList[0].uid().accept(self)
-                log(LOG_DEBUG , "var : "+ str(var) , tid="100an")
-                if (ptype == PTYPE_SET_VAL) :
-                    if ((var not in parent) ) or (type(parent[var])!=dict ):
-                        parent[var] = {}
-                retCode , val = self.evalMember(ctx = ctx , memberList=memberList[1:] , parent=parent[var] , depth=(depth + 1) , ptype=ptype , value=value)
-                log(LOG_DEBUG , "retcode : "+str(retCode) + " , val:" + str(val) , tid="100au")
-                if retCode == RET_SUCCESS :
-                    if ptype == PTYPE_DEFAULT : 
-                        v = val #Check log function
-                    elif ptype == PTYPE_GET_TREE :
-                        v[var] = val
-                    elif ptype == PTYPE_SET_VAL :
-                        parent[var] = parent[var] |  val
-                        v = dict(parent)
-                    else : 
-                        log(LOG_DEBUG , "Unidentified ptype" , tid="100ax")
-                else:
-                    log(LOG_DEBUG , "" , tid="100av")
-                    retCode = RET_FAILURE 
-                    v = {}
-                log(LOG_DEBUG , "v : " + str(v) , tid="100ao")
-            elif ( memberList[0].match_b() ) : 
-                log(LOG_WARNING , "match_b not implemented in evalmembers..")
-            else : 
-                log(LOG_WARNING , "Unconsidered member encountered. " , tid="100al")
-        else : 
-            log(LOG_DEBUG , "Reached terminal member of member candidates ." + " , memberList : " +str(memberList[0].getText())  , tid="100bb")
-            retCode , v = self.visitMember_candidate( memberList[0] , parent_type=ptype , parent = parent  , value=value)
-            if ptype == PTYPE_GET_TREE : 
-                log(LOG_DEBUG , " Adding key : "+str(memberList[0].accept(self)) , tid="100bc" )
-                retCode1 , k = memberList[0].accept(self)
-                if k != None :
-                    v[k] = v
-
-        log(LOG_DEBUG , "evalMember , PARENT : " + str(parent)+ " , v : " + str(v) + " , retCode : " + str(retCode) , tid="976hv")
-        log(LOG_DEBUG , "" , tid="100as")
-        log(LOG_DEBUG , getFLoc() + "Check log function. " )
-        if self.pathMatch(root , path , False) :
-            #Do nothing..
-            log(LOG_DEBUG , "Check log function. " + getFLoc())
-        elif (self.pathMayMatch(root , path , False) ):
-            log(LOG_DEBUG , "Check log function. " + getFLoc())
-        else : 
-            log(LOG_DEBUG , "Check log function. " + getFLoc())
-            retCode = RET_FAILURE
-        return retCode, v
-
-    def pathMatch(self, target , path, isRegex) : 
-        '''
-        Identify if path is same as defined in target.
-        '''
-        ret = cRet()
-        ret.retCode = ret.RETCODE_GENERIC_FAILURE
-        v = False
-        log(LOG_DEBUG , getFLoc() + "pathmatch " )
-        if ( (type(target) == list) and (type(path)== list) ):
-            if len(target) == len(path) : 
-                v = True
-                for i in range(len(target)):
-                    if (target[i] == path[i]) or (target[i]=='*') :
-                        continue
-                    else : 
-                        v = False
-                        break
-            else : 
-                v = False
-        else:
-            retCode = RET_FAILURE
-            v = False
-        return ret
-
     def internalCalls(self , ctx  ):
         ret = cRet()
         ret.retCode = ret.RETCODE_GENERIC_FAILURE
@@ -1019,31 +874,6 @@ class customVisitor(test_1Visitor):
         else : 
             retCode = RET_FAILURE
         return ret
-
-
-    def pathMayMatch(self , root , path , isRegex):
-        '''
-        Identify if 'path' can become same as root if it is travered further.
-        '''
-        ret = cRet()
-        ret.retCode = ret.RETCODE_GENERIC_FAILURE
-        v = False
-        if ( (type(root) == list) and (type(path)== list) ):
-            if ( len(root) >= len(path) ) : 
-                v = True
-                for i in range(len(path)):
-                    if (root[i] == path[i]) or (root[i]=='*') :
-                        continue
-                    else : 
-                        v = False
-                        break
-            else : 
-                v = False
-        else:
-            retCode = RET_FAILURE
-            v = False
-        return ret
-
 
     def replace(self, a , b , input , isRegex) :
         ret = cRet()
@@ -1075,6 +905,15 @@ class customVisitor(test_1Visitor):
         ret= cRet()
         return ret
 
+    def isMultipleAllowed(valType = "rvalue" , rootDefined = False):
+        multipleAllowed = False
+        if ( valType == "rvalue" and (not rootDefined)):
+            multipleAllowed = False
+        elif ( (valType == "rvalue") and (rootDefined) ) : 
+            multipleAllowed = True
+        elif( (valType == "lvalue") ):
+            multipleAllowed = True
+        return multipleAllowed
 
     def commonVisitor(self, ctx  , ruleName):
         try: 
@@ -1095,6 +934,8 @@ def getVar(param):
     ret = cRet()
     if isVariable(param):
         ret.value =  gVarMap[param]
+        ret.refs = dict_op.refManager()
+        ret.refs.setRef(gVarMap , param)
         ret.retCode = ret.RETCODE_SUCCESS
         return ret
     else:

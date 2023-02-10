@@ -29,9 +29,12 @@ union=Infix(lambda x , y : union(x,y))
 
 class refManager():
 
-	obj = None
-	index = None
-	key = None
+	obj 			= None
+	index 			= None
+	key 			= None
+	absoluteRef 	= False
+	internalDict	= None
+	defaultKey		= "DEFAULT_KEY"
 
 	def __init__(self):
 		return
@@ -41,13 +44,29 @@ class refManager():
 
 	def setRef(self , obj , key = None , index = None):
 		success = False
-		if (None != obj) and ( (None != index ) or (None != key) ) : 
+		if (None != obj)  : 
+			if ( isinstance(obj , str) or isinstance(obj , numbers.Number) ):
+				log.warning("Unable to reference simple object : {} of type [{}]".format(obj , type(obj)) )
 			self.obj = obj
 			if ( isinstance(self.obj , dict) and (None != key) ):
-				self.key = key
+				self.key 			= key
+				self.absoluteRef 	= False
+				self.internalDict 	= None
+				self.index 			= None
 				success = True
 			elif ( isinstance(self.obj , list) and ( isinstance(index , int) and (len(self.obj) > index) ) ) :
-				self.index = index
+				self.index 			= index
+				self.absoluteRef 	= False
+				self.internalDict 	= None
+				self.key 			= None
+				success 			= True
+			elif ((isinstance(self.obj , dict) and (None == key)) or ( isinstance(self.obj , list) and (None == index) )) :
+				self.internalDict 	= {}
+				self.internalDict[self.defaultKey] = obj
+				self.absoluteRef 	= True
+				self.key 			= None
+				self.index 			= None
+				log.debug("Set absolute ref for type : [{}]".format(type(obj)) )
 				success = True
 			else : 
 				success = False
@@ -59,7 +78,10 @@ class refManager():
 	
 	def updateValue(self , value=None):
 		success = False
-		if (isinstance(self.obj , dict) and (self.key != None) ):
+		if (self.absoluteRef ):
+			self.internalDict[self.defaultKey] = value
+			success = True
+		elif (isinstance(self.obj , dict) and (self.key != None) ):
 			if (self.key in self.obj) :
 				self.obj[self.key] = value
 				success = True
@@ -78,6 +100,12 @@ class refManager():
 	def getValue(self):
 		success = False
 		value = None
+		if (self.absoluteRef):
+			if ( self.defaultKey in self.internalDict.keys()):
+				value = self.internalDict[self.defaultKey]
+				success = True
+			else : 
+				log.warning("Unable to get value from Internal dict : {} ".format(self.internalDict) )
 		if (isinstance(self.obj , dict) and (self.key != None) ):
 			if (self.key in self.obj) :
 				value = self.obj[self.key]
