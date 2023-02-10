@@ -304,7 +304,7 @@ class customVisitor(test_1Visitor):
             nArgs = self.newArgs()
             child = node.accept(self) 
             if ( child != None):
-                ret.value.append(child[1])
+                ret.value.append(child.value)
         logger.debug("Final derived list : {} ".format(ret) )
         return ret
 
@@ -493,6 +493,7 @@ class customVisitor(test_1Visitor):
             child   = ctx.getChild(i)
             logger.debug(" i : [{}] , child : [{}] ".format(i , child.getText()) )
             nArgs   = self.newArgs()
+            nArgs.rootDefined = ret.rootDefined
             nArgs.refs = localRef
             logger.debug("new Refs : {}".format(nArgs.refs) )
             if 0 == i:
@@ -502,7 +503,17 @@ class customVisitor(test_1Visitor):
                 logger.debug("Checking for : [{}]. ".format(child.getText()) )
                 ret2    = child.accept(self)
                 if isinstance(ret2.value , dict):
-                    localRef.updateValue( [ret2.refs])
+                    if args.lValue : 
+                        localRef.updateValue( [ret2.refs])
+                    else : 
+                        ok , v = ret2.refs.getValue()
+                        if ok : 
+                            mockDict = { "dummy" : copy.deepcopy(v) }
+                            r = dict_op.refManager()
+                            r.setRef(mockDict , "dummy")
+                            localRef.updateValue( [r])
+                            logger.debug("Added deepcopy for RHS.")
+
                 else : 
                     logger.warning("Tried to access membership for non dictionary variable. {} ".format(ret2.value) )
                     ret.retCode = ret.RETCODE_INVALID_PARAMS
@@ -562,6 +573,7 @@ class customVisitor(test_1Visitor):
         ret.retCode = ret.RETCODE_GENERIC_FAILURE
         self.commonVisitor(ctx , "member candidate")
         args = self.getArgs()
+        m = dict_op.matchCriteria()
         if (args == None):
             logger.debug("Custom args not found. ")
         else :
@@ -582,35 +594,48 @@ class customVisitor(test_1Visitor):
             if type(ret2.value) == dict : 
                 logger.warning("Dictionary specified as member.. ")
             k = ret2.value
-            if ( not args.lValue): 
-                if ( not args.rootDefined): 
-                    ok , d = refList[0].getValue()
-                    logger.debug("Ref 0 : {}".format(d) )
-                    if ok and ((isinstance(d , dict)) and (k in d.keys())):
-                        refList[0] = dict_op.refManager()
-                        refList[0].setRef(d , k)
-                        logger.debug("test")
-                else : 
-                    refList[0].filter(level=args.level , key=ret2.value)
-                    logger.debug("test")
-            else :
-                for refIndex in range(len(refList)) :  
-                    logger.debug("test")
-                    newRef = dict_op.getRefs(refList[refIndex] , k)
-                    refList.pop(refIndex)
-                    if (len(newRef) > 0 ):
-                        logger.debug("test")
-                        for eachRef in newRef : 
-                            refList.append(eachRef)
-
-
+            m.key = k 
         elif ctx.match_b() != None :
             nArgs = self.newArgs()
             ret = (ctx.match_b().accept(self))
             success = True
         elif (ctx.M() != None) :
+            if (not args.rootDefined) : 
+                logger.warning("Select all without root.")
+            else : 
+                m.matchType = m.MATCH_ALL
             log(LOG_DEBUG , "m cand in all members") 
             success = True
+        
+        if ( not args.lValue): 
+            if ( not args.rootDefined): 
+                ok , d = refList[0].getValue()
+                logger.debug("Ref 0 : {}".format(d) )
+                if ok and ((isinstance(d , dict)) and (k in d.keys())):
+                    refList[0] = dict_op.refManager()
+                    refList[0].setRef(d , k)
+                    logger.debug("test")
+            else : 
+                ok , d = refList[0].getValue()
+                if ok : 
+                    if (isinstance(d , dict)):
+                        j = dict_op.ji(d)
+                        refList[0].updateValue(j)
+                        logger.debug("Converted to Ji instance")
+                    elif (isinstance(d , dict_op.ji)):
+                        j = d
+                        logger.debug("Already Ji instance")
+                j.filter(level=args.level , key=ret2.value)
+                logger.debug("test")
+        else :
+            for refIndex in range(len(refList)) :  
+                logger.debug("test")
+                newRef = dict_op.getRefs(refList[refIndex] , k)
+                refList.pop(refIndex)
+                if (len(newRef) > 0 ):
+                    logger.debug("test")
+                    for eachRef in newRef : 
+                        refList.append(eachRef)
         if success :
             ret.retCode = ret.RETCODE_SUCCESS
         return ret

@@ -130,6 +130,9 @@ class matchCriteria():
 	valueRegex	= None
 	refs 		= None
 	level       = 0
+	matchType	= None
+
+	MATCH_ALL		= "all"
 
 	def __init__(self) : 
 		pass
@@ -337,7 +340,7 @@ def getRefs(root , m):
 	if (m.level == 0   or   m.level == -1 ) : 
 		for k,v in root.items() :
 			match = False
-			if (k == m.key   or v == m.value):
+			if ( (m.matchType == m.MATCH_ALL) or k == m.key   or v == m.value):
 				match = True
 				# TODO : Add regex support
 			if match : 

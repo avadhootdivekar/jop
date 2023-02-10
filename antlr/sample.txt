@@ -5,7 +5,19 @@
 // I3 = {"more" : {"a":"b" , "c":"d" , 11:1100}};
 // I4 = {"abc" : "def"  , 45:false , "new" : {13:14 , 15:16 , "more" : {"a":"b" , "c":"d" , 11 :110}}};
 I5 = {"xyz":"yy" , "xyz_2":"yy2" , "xyz_3" : "yy3"};
-
+I6     =   		{
+	"key1" : "value1" , "abc" : "_val_abc_",
+	"key2" : {
+		"abc" : "_val_abc_2_", 
+		"key_22" : "value 22"
+	},
+	"key3" : {
+		"key 3.1" : {
+			"abc" : " val abc 3.1",
+			"list1" : [ "abcd" , "efgh" ]
+		}
+	}
+};
 O1 = I1 .+ I2; 
 O2 = I1.*I2;
 O3 = I1.-I2;
@@ -15,6 +27,10 @@ O6 = I2."new"."more";
 O7 = I1."abc" + I2."abc";
 O8 = I1."abc" + I2."new"."more";
 O9 = I1."abc" + I2."new"."more"."c";
+O10 = I2./"new"."more"."c";
+O11 = I2;
+O12 = I2[34];
+
 
 //O1 = {};
 //     O1."new" = 5;
