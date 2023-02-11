@@ -13,7 +13,7 @@ import dict_op
 
 
 # Creating a logger object
-logFormat="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
+logFormat="[%(asctime)s:%(levelname)s: %(filename)s:%(lineno)s-%(funcName)s() ] %(message)s"
 logging.basicConfig(filename="visitor.log" ,  level=logging.DEBUG , force=True , format=logFormat)
 logger = logging.getLogger(__name__.split('.')[0])
 logger.debug("This is first debug message")
@@ -574,6 +574,8 @@ class customVisitor(test_1Visitor):
         self.commonVisitor(ctx , "member candidate")
         args = self.getArgs()
         m = dict_op.matchCriteria()
+        k = None
+        ret2 = None
         if (args == None):
             logger.debug("Custom args not found. ")
         else :
@@ -616,17 +618,21 @@ class customVisitor(test_1Visitor):
                     refList[0].setRef(d , k)
                     logger.debug("test")
             else : 
-                ok , d = refList[0].getValue()
-                if ok : 
-                    if (isinstance(d , dict)):
-                        j = dict_op.ji(d)
-                        refList[0].updateValue(j)
-                        logger.debug("Converted to Ji instance")
-                    elif (isinstance(d , dict_op.ji)):
-                        j = d
-                        logger.debug("Already Ji instance")
-                j.filter(level=args.level , key=ret2.value)
-                logger.debug("test")
+                if (m.matchType != m.MATCH_ALL) :
+                    # If matchAll , no need to do anything, 
+                    ok , d = refList[0].getValue()
+                    if ok : 
+                        if (isinstance(d , dict)):
+                            j = dict_op.ji(d)
+                            refList[0].updateValue(j)
+                            logger.debug("Converted to Ji instance")
+                        elif (isinstance(d , dict_op.ji)):
+                            j = d
+                            logger.debug("Already Ji instance")
+                    m.level = args.level
+                    m.key = ret.value
+                    j.filter(m)
+                    logger.debug("test")
         else :
             for refIndex in range(len(refList)) :  
                 logger.debug("test")

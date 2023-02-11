@@ -132,7 +132,8 @@ class matchCriteria():
 	level       = 0
 	matchType	= None
 
-	MATCH_ALL		= "all"
+	MATCH_ALL							= "all"
+	MATCH_DEL_NON_MATCHING_LEVELS		= "del_nonmatch_level"
 
 	def __init__(self) : 
 		pass
@@ -243,12 +244,14 @@ class ji (dict ):
 			logging.warning(" Unable to union with type [{}] operand b [{}] ".format(type(b) , b ) );
 		return c
 	
-	def filter(self , level=0 , key=None , value=None, keyRegex=None , valueRegex=None ):
-		log.debug("Filtering for level [{}] , key [{}] , value [{}] , keyRegex [{}] , valueRegex [{}]".format(level , key , value , keyRegex , valueRegex) )
-		if ( (key != None) and (keyRegex != None) ):
+	def filter(self , m = None ):
+		log.debug("Filtering for matchCriteria : {}".format(m) )
+		if ( m == None):
+			log.warning("No match criteria specified.")
+		elif (m.key != None and m.keyregex != None):
 			log.info("Key as well as keyRegex specified, please spcify only one.")
 		# Do same for value
-		return filter(root=self , level=level , key=key , keyRegex=keyRegex , value=value , valueRegex=valueRegex)
+		return filter(root=self , m = m)
 
 def depth(a):
 	if isinstance(a, ji) or isinstance(a , dict):
@@ -268,37 +271,39 @@ def getRandom(maxDepth=0):
 		getRandom()
 
 
-def filter( root = {} , level=0 , key=None , value=None, keyRegex=None , valueRegex=None ):
+def filter( root = {} , m = None ):
 	ret = []
-	log.debug("Filtering for level [{}] , key [{}] , value [{}] , keyRegex [{}] , valueRegex [{}]".format(level , key , value , keyRegex , valueRegex) )
+	log.debug("Filtering for match : {}".format(m) )
 	retDefault = None
-	if ( (key != None) and (keyRegex != None) ):
+	if None == m : 
+		log.warning("None match as argument. ")
+	if ( (m.key != None) and (m.keyRegex != None) ):
 		log.warning("Both key and keyRegex specified. ")
 		return retDefault
-	if ( (value != None) and (valueRegex != None) ):
+	if ( (m.value != None) and (m.valueRegex != None) ):
 		log.warning("Both key and keyRegex specified. ")
 		return retDefault
 	if (type(root) == dict ) or (type(root) == ji ) : 
 		for k , v  in list(root.items()):
 			keyMatch = False
 			valueMatch = False
-			if ( 0 == level) : 
-				if (keyRegex != None):
-					log.debug("Searching for regex [{}] in key [{}]".format(keyRegex , k) )
-					pattern = re.compile(keyRegex)
+			if ( 0 == m.level) : 
+				if (m.keyRegex != None):
+					log.debug("Searching for regex [{}] in key [{}]".format(m.keyRegex , k) )
+					pattern = re.compile(m.keyRegex)
 					match = pattern.match(k)
 					if (match != None):
 						keyMatch = True
-				if (valueRegex != None):
-					log.debug("Searching for regex [{}] in key [{}]".format(valueRegex , v) )
-					pattern = re.compile(valueRegex)
+				if (m.valueRegex != None):
+					log.debug("Searching for regex [{}] in key [{}]".format(m.valueRegex , v) )
+					pattern = re.compile(m.valueRegex)
 					if (isinstance(v , str)):
 						match = pattern.match(v)
 						if (match != None):
 							valueMatch = True
-				if (key != None) and (key == k ):
+				if (m.key != None) and (m.key == k ):
 					keyMatch = True
-				if (value != None) and (value == v ):
+				if (m.value != None) and (m.value == v ):
 					valueMatch = True				
 				if keyMatch or valueMatch:
 					ret = refManager()
@@ -307,14 +312,19 @@ def filter( root = {} , level=0 , key=None , value=None, keyRegex=None , valueRe
 				else :
 					log.debug("No match, deleting key [{}] from root [{}]".format(k , root))
 					root.__delitem__(k) 
-			elif ( level > 0) : 
+			elif ( m.level > 0) : 
 				if ( isinstance(v , dict) or isinstance(v , ji) ):
-					ref = filter(root=v , level=(level-1) , key=key , keyRegex=keyRegex , value=value , valueRegex=valueRegex)
+					newM = copy.deepcopy(m)
+					newM.level = m.level - 1
+					ref = filter(root=v , m = newM)
 					if (isinstance(ref , list)) : 
 						ret = ret + ref
 					elif (isinstance(ref , refManager ) ):
 						ret.append(refManager)
-					elif (ref == None) : 
+					elif (ref == None) :
+						if (m.matchType == m.MATCH_DEL_NON_MATCHING_LEVELS) :
+							log.warning("Deleting item {} from {}".format(k , root))
+							root.__delitem__(k)
 						pass
 					else : 
 						log.warning("Ref [{}] received and discarded. ".format(ref) )
