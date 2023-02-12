@@ -630,7 +630,8 @@ class customVisitor(test_1Visitor):
                             j = d
                             logger.debug("Already Ji instance")
                     m.level = args.level
-                    m.key = ret.value
+                    m.key = ret2.value
+                    m.matchType = m.MATCH_DEL_NON_MATCHING_LEVELS
                     j.filter(m)
                     logger.debug("test")
         else :

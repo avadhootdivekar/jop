@@ -248,7 +248,7 @@ class ji (dict ):
 		log.debug("Filtering for matchCriteria : {}".format(m) )
 		if ( m == None):
 			log.warning("No match criteria specified.")
-		elif (m.key != None and m.keyregex != None):
+		elif (m.key != None and m.keyRegex != None):
 			log.info("Key as well as keyRegex specified, please spcify only one.")
 		# Do same for value
 		return filter(root=self , m = m)
@@ -313,22 +313,24 @@ def filter( root = {} , m = None ):
 					log.debug("No match, deleting key [{}] from root [{}]".format(k , root))
 					root.__delitem__(k) 
 			elif ( m.level > 0) : 
+				log.debug(" m : {} , k : {} , value : {} ".format(m , k , v) )
 				if ( isinstance(v , dict) or isinstance(v , ji) ):
 					newM = copy.deepcopy(m)
 					newM.level = m.level - 1
 					ref = filter(root=v , m = newM)
-					if (isinstance(ref , list)) : 
+					if (isinstance(ref , list) and (len(ref) > 0)) : 
 						ret = ret + ref
 					elif (isinstance(ref , refManager ) ):
 						ret.append(refManager)
-					elif (ref == None) :
+					elif (ref == None  or (isinstance(ref , list) and len(ref)==0 ) ) :
 						if (m.matchType == m.MATCH_DEL_NON_MATCHING_LEVELS) :
 							log.warning("Deleting item {} from {}".format(k , root))
 							root.__delitem__(k)
-						pass
 					else : 
 						log.warning("Ref [{}] received and discarded. ".format(ref) )
-						
+				elif ( m.matchType ==  m.MATCH_DEL_NON_MATCHING_LEVELS) : 
+							log.warning("Deleting item {} from {}".format(k , root))
+							root.__delitem__(k)						
 			else : 
 				log.warning("Incorrect level [{}]".format(level))
 	else : 
