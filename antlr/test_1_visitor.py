@@ -7,6 +7,7 @@ import re
 from antlr4.tree.Trees import Trees
 import logging
 import copy
+import numbers
 
 sys.path.append("/home/container/mounted/jop_repo/")
 import dict_op
@@ -502,9 +503,16 @@ class customVisitor(test_1Visitor):
                 localRef.setRef(root , key="root")
                 logger.debug("Checking for : [{}]. ".format(child.getText()) )
                 ret2    = child.accept(self)
-                if isinstance(ret2.value , dict):
+                if ( ( args.lValue) or isinstance(ret2.value , dict)):
                     if args.lValue : 
-                        localRef.updateValue( [ret2.refs])
+                        if (not isVariable(ret2.text)):
+                            gVarMap[ret2.text] = {}
+                            r = dict_op.refManager()
+                            r.setRef(gVarMap , ret2.text)
+                            localRef.updateValue( [r])
+                            logger.debug("varName : {} , Ref : {}".format(ret2.text ,  r) )
+                        else :
+                            localRef.updateValue( [ret2.refs])
                     else : 
                         ok , v = ret2.refs.getValue()
                         if ok : 
@@ -635,9 +643,30 @@ class customVisitor(test_1Visitor):
                     j.filter(m)
                     logger.debug("test")
         else :
+            logger.debug("refList : {}".format(refList) )
+            if ((len(refList) == 0)): 
+                logger.debug(" refList {}".format(refList ) )
+                d = {k : None}
+                r = dict_op.refManager()
+                r.setRef(d , k)
+                refList.append(r)                
+                logger.debug("New reflist : {} , new ref : {} ".format(refList , r) )
             for refIndex in range(len(refList)) :  
                 logger.debug("test")
-                newRef = dict_op.getRefs(refList[refIndex] , k)
+                m = dict_op.matchCriteria()
+                m.key = k
+                newRef = dict_op.getRefs(refList[refIndex] , m)
+                if (len(newRef)==0):
+                    ok , d_orig = refList[refIndex].getValue()
+                    if ok : 
+                        if ( isinstance(d_orig , dict) ):
+                            d_orig[k] = None
+                        else : 
+                            refList[refIndex].updateValue({k:None})
+                    logger.debug("new ref : {} , value : {}".format(refList[refIndex] , refList[refIndex].getValue()[1]) )
+                    r = dict_op.refManager()
+                    r.setRef(refList[refIndex].getValue()[1] , k)
+                    refList.append(r)
                 refList.pop(refIndex)
                 if (len(newRef) > 0 ):
                     logger.debug("test")
@@ -679,7 +708,8 @@ class customVisitor(test_1Visitor):
             # if ( (isinstance(v1 , dict_op.ji) or isinstance(v1 , dict) ) and 
             #     (isinstance(v2 , dict_op.ji) or isinstance(v2 , dict) ) ):
 
-            if (ctx.b_op() != None ) and (ctx.b_op().math_b_op()!= None):
+            if ( (ctx.b_op() != None ) and (ctx.b_op().math_b_op()!= None) and 
+                (isinstance(retV1.value , dict) and isinstance(retV2.value , dict)) ):
                 if retOp.value == ".+" :
                     a = dict_op.ji(retV1.value) 
                     b = dict_op.ji(retV2.value) 
@@ -706,6 +736,18 @@ class customVisitor(test_1Visitor):
                     # b = dict_op.ji(retV2.value) 
                     # ret.value = a - b
                 logger.debug(" calculated return : [ {} ]".format(ret))
+            elif ( (isinstance(retV1.value , numbers.Number)) and (isinstance(retV2.value , numbers.Number)) ):
+                if (retOp.value == "+"  or retOp.value == ".+"):
+                    ret.value = retV1.value + retV2.value
+                elif (retOp.value == "-"  or retOp.value == ".-"):
+                    ret.value = retV1.value - retV2.value
+                elif (retOp.value == "*"  or retOp.value == ".*"):
+                    ret.value = retV1.value - retV2.value
+                elif (retOp.value == "/"  or retOp.value == "./"):
+                    ret.value = retV1.value - retV2.value
+            elif (isStr(retV1.value) and isStr(retV2.value)) :
+                if (retOp.value == "+" or retOp.value == ".+"):
+                    ret.value = retV1.value + retV2.value
             else:
                 pass
         else:
@@ -955,6 +997,17 @@ class customVisitor(test_1Visitor):
         except Exception as e:
             log(LOG_ERROR , "Exception in commin visitor : {}".format(e)  )
 
+def isNum(param):
+    if (isinstance(param , numbers.Number)):
+        return True
+    else : 
+        return False
+    
+def isStr(param):
+    if (isinstance(param , str)):
+        return True
+    else : 
+        return False
 
 def isFunction(param):
     if param in gFunMap:
