@@ -49,7 +49,8 @@ O14 = I2./*.*."c";
 O15."check1"."check2" = I1./*."more" ;
 O15."check3" = I7."key2";
 O16 = I7."key1".14 .+ I6."key3"."key 3.1"."def";
-
+ret."O15" = O15;
+ret."O16" = O16;
 
 //O1 = {};
 //     O1."new" = 5;

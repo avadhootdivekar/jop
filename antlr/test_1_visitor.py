@@ -69,9 +69,12 @@ def logFallBack(level=0, str1="" , tid="000OO"):
 
 log = logFallBack
 
-def run_1 (argv , log=logFallBack) :
+def run_1 (log=logFallBack , ip_string=None , ip_file=None) :
     print("Hello world!!")
-    inp = antlr4.FileStream(argv[1])
+    if (ip_file != None) : 
+        inp = antlr4.FileStream(ip_file)
+    elif (ip_string != None) :
+        inp = antlr4.InputStream(ip_string)
     lexer = test_1Lexer(inp)
     tokens = antlr4.CommonTokenStream(lexer)
     parser =  test_1Parser(tokens)
@@ -102,6 +105,7 @@ def run_1 (argv , log=logFallBack) :
     for k,v in gVarMap.items():
         logger.debug(" k : [{}] , v : [{}]".format(k,v))
     logger.debug("visitor return : p:{} ".format(p))
+    logger.debug("{}Return value : {}".format(SEPERATOR , visitor.gRet))
     return
 
 
@@ -219,6 +223,11 @@ class response():
 
 
 class customVisitor(test_1Visitor):
+    gRet = { 
+            "success"   : False , 
+            "value"     : None ,
+            "version"   : "1.0"
+        }
     argStack = []
     def visitMatch_b(self, ctx: test_1Parser.Match_bContext  ):
         self.commonVisitor(ctx , "match_b")
@@ -459,8 +468,10 @@ class customVisitor(test_1Visitor):
 
     def visitCode(self, ctx: test_1Parser.CodeContext):
         self.commonVisitor(ctx , "Code")
-        return super().visitCode(ctx)
-
+        a =  super().visitCode(ctx)
+        if "ret" in gVarMap :
+            self.gRet["value"] = gVarMap["ret"]         # Assign return value
+        return a
     def visitMember(self, ctx: test_1Parser.MemberContext ):
         '''
         parent type == member , in case we are visiting member of node.
@@ -1038,9 +1049,11 @@ def isVariable(param):
 
 
 if __name__ == "__main__"  :
-    run_1(sys.argv)
+    run_1(ip_file=sys.argv[1])
 else :
-    run_1(["test_1_visitor.py","sample.txt"] )
+
+    # run_1(["test_1_visitor.py","sample.txt"] )
+    pass
 
 
 

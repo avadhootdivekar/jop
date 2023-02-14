@@ -1,5 +1,8 @@
 import re
 import dict_op
+import sys
+sys.path.append("/home/container/mounted/jop_repo/antlr/")
+import test_1_visitor
 
 def run_1() : 
 	text = "alpha delta gallon Sigma and some $pec!@l chars."
@@ -113,9 +116,15 @@ def test4() :
 		print("Output {} : {}".format( i , out[i].getValue()[1]) )
 	return
 
+def test5():
+	test_1_visitor.run_1(ip_string="ret=50;")
+	return 
+
 # op_check()
 # test2()
 
 # test3()
 
-test4()
+# test4()
+
+test5()
