@@ -33,6 +33,7 @@ RunTest
     Run file and check output  ../inputs/test-4.jop   ../inputs/test-4.exp
     Run file and check output  ../inputs/test-5.jop   ../inputs/test-5.exp
     Run file and check output  ../inputs/test-6.jop   ../inputs/test-6.exp
+    Run file and check output  ../inputs/member_assignment.jop   ../inputs/test-5.exp
 
 
 

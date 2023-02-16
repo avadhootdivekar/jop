@@ -9,13 +9,14 @@ import logging
 import copy
 import numbers
 
-sys.path.append("/home/container/mounted/jop_repo/")
+# sys.path.append("/home/container/mounted/jop_repo/")
+sys.path.append("/home/jop_workspace/")
 import dict_op
 
 
 # Creating a logger object
 logFormat="[%(asctime)s:%(levelname)s: %(filename)s:%(lineno)s-%(funcName)s() ] %(message)s"
-logging.basicConfig(filename="visitor.log" ,  level=logging.DEBUG , force=True , format=logFormat)
+logging.basicConfig(filename="/var/log/visitor.log" ,  level=logging.DEBUG , force=True , format=logFormat)
 logger = logging.getLogger(__name__.split('.')[0])
 logger.debug("This is first debug message")
 logger.error("This is first error message")

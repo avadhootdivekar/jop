@@ -1,24 +1,39 @@
 
-export SEP:="\n#######################################################################################################################\n"
-export JOP_VER="1.01"
+export SEP:=\n====================================================================================================================================\n
+export JOP_VER:=1.01
+export WORKSPACE_DIR:=/home/jop_workspace
+export ROBOT_OPTIONS= --outputdir ${WORKSPACE_DIR}/output/test_results 
 
+
+all : clean build test
+	@echo "${SEP} all"
 
 clean:
-	echo "Clean"
+	@echo "${SEP} Clean"
 
-all : 
-	echo "all"
+
+build : 
+	@echo "${SEP} Build"
+	cd antlr/ ; \
+		make ; 
 
 tools : 
-	echo "tools"
+	@echo "${SEP} tools"
+
+run : 
+	@echo -e "${SEP} run" 
+	cd antlr/ ; \
+		make run; 
 
 test :
-	echo "test"
+	@echo "${SEP} test"
+	cd tests/test_cases; \
+		robot test-1.robot ;
 
 build_container :
 # Only this recipe runs outside of the container. Rest all will run inside the container. 
 # Build  the  container 
-	echo "Building build shell."
+	@echo "${SEP} Building build shell."
 	docker build -t jop_builder:${JOP_VER} ./ ;
 
 get_build_shell:
