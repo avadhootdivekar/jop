@@ -7,13 +7,14 @@ import re
 from antlr4.tree.Trees import Trees
 import logging
 import copy
+import numbers
 
 sys.path.append("/home/container/mounted/jop_repo/")
 import dict_op
 
 
 # Creating a logger object
-logFormat="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
+logFormat="[%(asctime)s:%(levelname)s: %(filename)s:%(lineno)s-%(funcName)s() ] %(message)s"
 logging.basicConfig(filename="visitor.log" ,  level=logging.DEBUG , force=True , format=logFormat)
 logger = logging.getLogger(__name__.split('.')[0])
 logger.debug("This is first debug message")
@@ -68,9 +69,12 @@ def logFallBack(level=0, str1="" , tid="000OO"):
 
 log = logFallBack
 
-def run_1 (argv , log=logFallBack) :
+def run_1 (log=logFallBack , ip_string=None , ip_file=None) :
     print("Hello world!!")
-    inp = antlr4.FileStream(argv[1])
+    if (ip_file != None) : 
+        inp = antlr4.FileStream(ip_file)
+    elif (ip_string != None) :
+        inp = antlr4.InputStream(ip_string)
     lexer = test_1Lexer(inp)
     tokens = antlr4.CommonTokenStream(lexer)
     parser =  test_1Parser(tokens)
@@ -101,7 +105,8 @@ def run_1 (argv , log=logFallBack) :
     for k,v in gVarMap.items():
         logger.debug(" k : [{}] , v : [{}]".format(k,v))
     logger.debug("visitor return : p:{} ".format(p))
-    return
+    logger.debug("{}Return value : {}".format(SEPERATOR , visitor.gRet))
+    return visitor.gRet
 
 
 class cArgs():
@@ -218,6 +223,11 @@ class response():
 
 
 class customVisitor(test_1Visitor):
+    gRet = { 
+            "success"   : False , 
+            "value"     : None ,
+            "version"   : "1.0"
+        }
     argStack = []
     def visitMatch_b(self, ctx: test_1Parser.Match_bContext  ):
         self.commonVisitor(ctx , "match_b")
@@ -304,7 +314,7 @@ class customVisitor(test_1Visitor):
             nArgs = self.newArgs()
             child = node.accept(self) 
             if ( child != None):
-                ret.value.append(child[1])
+                ret.value.append(child.value)
         logger.debug("Final derived list : {} ".format(ret) )
         return ret
 
@@ -458,8 +468,10 @@ class customVisitor(test_1Visitor):
 
     def visitCode(self, ctx: test_1Parser.CodeContext):
         self.commonVisitor(ctx , "Code")
-        return super().visitCode(ctx)
-
+        a =  super().visitCode(ctx)
+        if "ret" in gVarMap :
+            self.gRet["value"] = gVarMap["ret"]         # Assign return value
+        return a
     def visitMember(self, ctx: test_1Parser.MemberContext ):
         '''
         parent type == member , in case we are visiting member of node.
@@ -493,6 +505,7 @@ class customVisitor(test_1Visitor):
             child   = ctx.getChild(i)
             logger.debug(" i : [{}] , child : [{}] ".format(i , child.getText()) )
             nArgs   = self.newArgs()
+            nArgs.rootDefined = ret.rootDefined
             nArgs.refs = localRef
             logger.debug("new Refs : {}".format(nArgs.refs) )
             if 0 == i:
@@ -501,8 +514,25 @@ class customVisitor(test_1Visitor):
                 localRef.setRef(root , key="root")
                 logger.debug("Checking for : [{}]. ".format(child.getText()) )
                 ret2    = child.accept(self)
-                if isinstance(ret2.value , dict):
-                    localRef.updateValue( [ret2.refs])
+                if ( ( args.lValue) or isinstance(ret2.value , dict)):
+                    if args.lValue : 
+                        if (not isVariable(ret2.text)):
+                            gVarMap[ret2.text] = {}
+                            r = dict_op.refManager()
+                            r.setRef(gVarMap , ret2.text)
+                            localRef.updateValue( [r])
+                            logger.debug("varName : {} , Ref : {}".format(ret2.text ,  r) )
+                        else :
+                            localRef.updateValue( [ret2.refs])
+                    else : 
+                        ok , v = ret2.refs.getValue()
+                        if ok : 
+                            mockDict = { "dummy" : copy.deepcopy(v) }
+                            r = dict_op.refManager()
+                            r.setRef(mockDict , "dummy")
+                            localRef.updateValue( [r])
+                            logger.debug("Added deepcopy for RHS.")
+
                 else : 
                     logger.warning("Tried to access membership for non dictionary variable. {} ".format(ret2.value) )
                     ret.retCode = ret.RETCODE_INVALID_PARAMS
@@ -562,6 +592,9 @@ class customVisitor(test_1Visitor):
         ret.retCode = ret.RETCODE_GENERIC_FAILURE
         self.commonVisitor(ctx , "member candidate")
         args = self.getArgs()
+        m = dict_op.matchCriteria()
+        k = None
+        ret2 = None
         if (args == None):
             logger.debug("Custom args not found. ")
         else :
@@ -582,35 +615,74 @@ class customVisitor(test_1Visitor):
             if type(ret2.value) == dict : 
                 logger.warning("Dictionary specified as member.. ")
             k = ret2.value
-            if ( not args.lValue): 
-                if ( not args.rootDefined): 
-                    ok , d = refList[0].getValue()
-                    logger.debug("Ref 0 : {}".format(d) )
-                    if ok and ((isinstance(d , dict)) and (k in d.keys())):
-                        refList[0] = dict_op.refManager()
-                        refList[0].setRef(d , k)
-                        logger.debug("test")
-                else : 
-                    refList[0].filter(level=args.level , key=ret2.value)
-                    logger.debug("test")
-            else :
-                for refIndex in range(len(refList)) :  
-                    logger.debug("test")
-                    newRef = dict_op.getRefs(refList[refIndex] , k)
-                    refList.pop(refIndex)
-                    if (len(newRef) > 0 ):
-                        logger.debug("test")
-                        for eachRef in newRef : 
-                            refList.append(eachRef)
-
-
+            m.key = k 
         elif ctx.match_b() != None :
             nArgs = self.newArgs()
             ret = (ctx.match_b().accept(self))
             success = True
         elif (ctx.M() != None) :
+            if (not args.rootDefined) : 
+                logger.warning("Select all without root.")
+            else : 
+                m.matchType = m.MATCH_ALL
             log(LOG_DEBUG , "m cand in all members") 
             success = True
+        
+        if ( not args.lValue): 
+            if ( not args.rootDefined): 
+                ok , d = refList[0].getValue()
+                logger.debug("Ref 0 : {}".format(d) )
+                if ok and ((isinstance(d , dict)) and (k in d.keys())):
+                    refList[0] = dict_op.refManager()
+                    refList[0].setRef(d , k)
+                    logger.debug("test")
+            else : 
+                if (m.matchType != m.MATCH_ALL) :
+                    # If matchAll , no need to do anything, 
+                    ok , d = refList[0].getValue()
+                    if ok : 
+                        if (isinstance(d , dict)):
+                            j = dict_op.ji(d)
+                            refList[0].updateValue(j)
+                            logger.debug("Converted to Ji instance")
+                        elif (isinstance(d , dict_op.ji)):
+                            j = d
+                            logger.debug("Already Ji instance")
+                    m.level = args.level
+                    m.key = ret2.value
+                    m.matchType = m.MATCH_DEL_NON_MATCHING_LEVELS
+                    j.filter(m)
+                    logger.debug("test")
+        else :
+            logger.debug("refList : {}".format(refList) )
+            if ((len(refList) == 0)): 
+                logger.debug(" refList {}".format(refList ) )
+                d = {k : None}
+                r = dict_op.refManager()
+                r.setRef(d , k)
+                refList.append(r)                
+                logger.debug("New reflist : {} , new ref : {} ".format(refList , r) )
+            for refIndex in range(len(refList)) :  
+                logger.debug("test")
+                m = dict_op.matchCriteria()
+                m.key = k
+                newRef = dict_op.getRefs(refList[refIndex] , m)
+                if (len(newRef)==0):
+                    ok , d_orig = refList[refIndex].getValue()
+                    if ok : 
+                        if ( isinstance(d_orig , dict) ):
+                            d_orig[k] = None
+                        else : 
+                            refList[refIndex].updateValue({k:None})
+                    logger.debug("new ref : {} , value : {}".format(refList[refIndex] , refList[refIndex].getValue()[1]) )
+                    r = dict_op.refManager()
+                    r.setRef(refList[refIndex].getValue()[1] , k)
+                    refList.append(r)
+                refList.pop(refIndex)
+                if (len(newRef) > 0 ):
+                    logger.debug("test")
+                    for eachRef in newRef : 
+                        refList.append(eachRef)
         if success :
             ret.retCode = ret.RETCODE_SUCCESS
         return ret
@@ -647,7 +719,8 @@ class customVisitor(test_1Visitor):
             # if ( (isinstance(v1 , dict_op.ji) or isinstance(v1 , dict) ) and 
             #     (isinstance(v2 , dict_op.ji) or isinstance(v2 , dict) ) ):
 
-            if (ctx.b_op() != None ) and (ctx.b_op().math_b_op()!= None):
+            if ( (ctx.b_op() != None ) and (ctx.b_op().math_b_op()!= None) and 
+                (isinstance(retV1.value , dict) and isinstance(retV2.value , dict)) ):
                 if retOp.value == ".+" :
                     a = dict_op.ji(retV1.value) 
                     b = dict_op.ji(retV2.value) 
@@ -674,6 +747,18 @@ class customVisitor(test_1Visitor):
                     # b = dict_op.ji(retV2.value) 
                     # ret.value = a - b
                 logger.debug(" calculated return : [ {} ]".format(ret))
+            elif ( (isinstance(retV1.value , numbers.Number)) and (isinstance(retV2.value , numbers.Number)) ):
+                if (retOp.value == "+"  or retOp.value == ".+"):
+                    ret.value = retV1.value + retV2.value
+                elif (retOp.value == "-"  or retOp.value == ".-"):
+                    ret.value = retV1.value - retV2.value
+                elif (retOp.value == "*"  or retOp.value == ".*"):
+                    ret.value = retV1.value * retV2.value
+                elif (retOp.value == "/"  or retOp.value == "./"):
+                    ret.value = retV1.value / retV2.value
+            elif (isStr(retV1.value) and isStr(retV2.value)) :
+                if (retOp.value == "+" or retOp.value == ".+"):
+                    ret.value = retV1.value + retV2.value
             else:
                 pass
         else:
@@ -923,6 +1008,17 @@ class customVisitor(test_1Visitor):
         except Exception as e:
             log(LOG_ERROR , "Exception in commin visitor : {}".format(e)  )
 
+def isNum(param):
+    if (isinstance(param , numbers.Number)):
+        return True
+    else : 
+        return False
+    
+def isStr(param):
+    if (isinstance(param , str)):
+        return True
+    else : 
+        return False
 
 def isFunction(param):
     if param in gFunMap:
@@ -953,9 +1049,11 @@ def isVariable(param):
 
 
 if __name__ == "__main__"  :
-    run_1(sys.argv)
+    run_1(ip_file=sys.argv[1])
 else :
-    run_1(["test_1_visitor.py","sample.txt"] )
+
+    # run_1(["test_1_visitor.py","sample.txt"] )
+    pass
 
 
 
