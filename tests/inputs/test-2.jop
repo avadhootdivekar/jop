@@ -1,0 +1,9 @@
+I2 = {
+	"alpha" : 24
+};
+
+I3 = {
+	"delta" : 58
+};
+
+ret = I2."alpha" + I3."delta";

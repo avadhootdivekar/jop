@@ -1,0 +1,10 @@
+some_variable_here 
+  =  {  "alpha" : "_check_1_ "
+
+  };
+  some_other_variable_here 
+  =  {  "alpha" : "_check_2_ "
+
+  };
+
+  ret = some_variable_here."alpha" + some_other_variable_here."alpha";

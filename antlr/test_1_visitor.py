@@ -106,7 +106,7 @@ def run_1 (log=logFallBack , ip_string=None , ip_file=None) :
         logger.debug(" k : [{}] , v : [{}]".format(k,v))
     logger.debug("visitor return : p:{} ".format(p))
     logger.debug("{}Return value : {}".format(SEPERATOR , visitor.gRet))
-    return
+    return visitor.gRet
 
 
 class cArgs():
@@ -753,9 +753,9 @@ class customVisitor(test_1Visitor):
                 elif (retOp.value == "-"  or retOp.value == ".-"):
                     ret.value = retV1.value - retV2.value
                 elif (retOp.value == "*"  or retOp.value == ".*"):
-                    ret.value = retV1.value - retV2.value
+                    ret.value = retV1.value * retV2.value
                 elif (retOp.value == "/"  or retOp.value == "./"):
-                    ret.value = retV1.value - retV2.value
+                    ret.value = retV1.value / retV2.value
             elif (isStr(retV1.value) and isStr(retV2.value)) :
                 if (retOp.value == "+" or retOp.value == ".+"):
                     ret.value = retV1.value + retV2.value

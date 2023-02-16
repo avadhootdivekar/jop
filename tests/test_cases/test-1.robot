@@ -5,6 +5,7 @@ Documentation      Here we have documentation for this suite.
 ...                It can also contain multiple paragraphs.
 Default Tags       default tag 1    default tag 2    default tag 3
 ...                default tag 4    default tag 5
+Library            baseLib.py
 
 *** Variables ***
 ${STRING}          This is a long string.
@@ -20,11 +21,21 @@ ${MULTILINE}       SEPARATOR=\n
 ...                second=This value is even longer. It has two sentences.
 
 *** Test Cases ***
-Example
-    [Tags]    you    probably    do    not    have    this    many
-    ...       tags    in    real    life
-    Do X    first argument    second argument    third argument
-    ...    fourth argument    fifth argument    sixth argument
-    ${var} =    Get X
-    ...    first argument passed to this keyword is pretty long
-    ...    second argument passed to this keyword is long too
+SimpleTests
+    [Tags]    simpleTests
+    Test new    Sample input
+
+RunTest
+    [Tags]    baseTest
+    Run file and check output  ../inputs/test-1.jop   ../inputs/test-1.exp
+    Run file and check output  ../inputs/test-2.jop   ../inputs/test-2.exp
+    Run file and check output  ../inputs/test-3.jop   ../inputs/test-3.exp
+    Run file and check output  ../inputs/test-4.jop   ../inputs/test-4.exp
+    Run file and check output  ../inputs/test-5.jop   ../inputs/test-5.exp
+    Run file and check output  ../inputs/test-6.jop   ../inputs/test-6.exp
+
+
+
+
+
+

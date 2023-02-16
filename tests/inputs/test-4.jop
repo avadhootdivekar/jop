@@ -1,0 +1,15 @@
+I23 = {
+	"new" : {
+		"more" : {
+			"some more" : 14
+		}
+	}
+};
+
+I34 = {
+	"key1" : {
+		"key2" : 28
+	}
+};
+
+ret = I23."new"."more"."some more" .* I34."key1"."key2";
