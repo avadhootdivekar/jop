@@ -1,0 +1,13 @@
+I1 = 35;
+I2 = "delta";
+I3 = {
+	"gamma" : 35,
+	67 : {
+		"neon" : "radon"
+	}
+};
+
+ret."check_member"."I1" = I1;
+ret.45."deep_member".56 = I2;
+ret."I3" = I3;
+

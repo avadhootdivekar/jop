@@ -144,7 +144,8 @@ class cRet():
         retCode     = self.RETCODE_GENERIC_FAILURE
     
     def __str__(self):
-        return ("cRet : {{ retCode : {} key : {} , value : {} , text : {} }}".format(self.retCode , self.key , self.value , self.text) )
+        return ("cRet : {{ retCode : {} key : {} , value : {} , text : {} , rootDefined : {} , sharedJi : {} , refs : {} }}".format(
+                        self.retCode , self.key , self.value , self.text , self.rootDefined , self.sharedJi , self.refs) )
 
 
 class customListener(test_1Listener): 
@@ -224,12 +225,18 @@ class response():
 
 
 class customVisitor(test_1Visitor):
-    gRet = { 
+    argStack = []
+
+    def __init__(self):
+        global gVarMap
+        self.gRet = { 
             "success"   : False , 
             "value"     : None ,
             "version"   : "1.0"
         }
-    argStack = []
+        gVarMap = {}
+        logger.debug("Initialized gVarMap to : {}".format(gVarMap) )
+    
     def visitMatch_b(self, ctx: test_1Parser.Match_bContext  ):
         self.commonVisitor(ctx , "match_b")
         args = self.getArgs()
@@ -515,6 +522,7 @@ class customVisitor(test_1Visitor):
                 localRef.setRef(root , key="root")
                 logger.debug("Checking for : [{}]. ".format(child.getText()) )
                 ret2    = child.accept(self)
+                logger.debug("ret2 : {}".format(ret2))
                 if ( ( args.lValue) or isinstance(ret2.value , dict)):
                     if args.lValue : 
                         if (not isVariable(ret2.text)):
@@ -667,7 +675,10 @@ class customVisitor(test_1Visitor):
                 logger.debug("test")
                 m = dict_op.matchCriteria()
                 m.key = k
-                newRef = dict_op.getRefs(refList[refIndex] , m)
+                newRef = []
+                ok , d = refList[refIndex].getValue()
+                if ok :
+                    newRef = dict_op.getRefs( d, m)
                 if (len(newRef)==0):
                     ok , d_orig = refList[refIndex].getValue()
                     if ok : 
@@ -866,7 +877,7 @@ class customVisitor(test_1Visitor):
             logger.debug("[{}] : Custom args not found.".format(string) )
             return False
         else : 
-            logger.debug("[{}] : Custom arg was found.".format(string) )
+            logger.debug("[{}] : Custom arg was found. Args are : {}".format(string , args) )
             return True
 
     def visitId_(self, ctx: test_1Parser.Id_Context  ):
@@ -1028,19 +1039,23 @@ def isFunction(param):
         return False
 
 def getVar(param):
+    global gVarMap
     ret = cRet()
     if isVariable(param):
         ret.value =  gVarMap[param]
         ret.refs = dict_op.refManager()
         ret.refs.setRef(gVarMap , param)
         ret.retCode = ret.RETCODE_SUCCESS
+        logger.debug("Variable [{}] found in map. Value is : [{}] , refs : {}".format(param , ret.value , ret.refs) )
         return ret
     else:
+        logger.debug("Potential invalid variable access.")
         ret.retCode = ret.RETCODE_GENERIC_FAILURE
         return ret
 
 
 def isVariable(param):
+    global gVarMap
     if param in gVarMap:
         return True
     else :
