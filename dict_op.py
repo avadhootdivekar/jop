@@ -8,7 +8,7 @@ import copy
 # pdb.set_trace()
 
 logFormat="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
-logging.basicConfig(format=logFormat ,  level=logging.DEBUG , filename="dict_op.log")
+logging.basicConfig(format=logFormat ,  level=logging.DEBUG , filename="/var/log/dict_op.log")
 log = logging.getLogger(__name__.split('.')[0])
 
 class Infix:
