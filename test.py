@@ -1,7 +1,7 @@
 import re
 import dict_op
 import sys
-sys.path.append("/home/container/mounted/jop_repo/antlr/")
+sys.path.append("/home/jop_workspace/antlr/")
 import test_1_visitor
 
 def run_1() : 
@@ -114,7 +114,17 @@ def test4() :
 	print("Output length : {} , {}".format(len(out) , out) )
 	for i in range(len(out)):
 		print("Output {} : {}".format( i , out[i].getValue()[1]) )
+
+	v4 = dict_op.ji()
+	print("V4 : {}".format(v4) )
+	v4.getRandom(maxDepth=3 , maxWidth=4,  maxStrLen=10 , maxNum=100000)
+	print("V4 : \n{}\n Depth : {}".format(v4 , v4.depth()) )
+	v4.getRandom(maxDepth=0, maxWidth=4 , maxStrLen=10 , maxNum=100000)
+	print("V4 : \n{}\nDepth : {}".format(v4, v4.depth()) )
+
 	return
+
+
 
 def test5():
 	test_1_visitor.run_1(ip_string="ret=50;")
@@ -125,6 +135,6 @@ def test5():
 
 # test3()
 
-# test4()
+test4()
 
-test5()
+# test5()
