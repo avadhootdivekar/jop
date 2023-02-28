@@ -35,6 +35,9 @@ RunTest
     Run file and check output  ../inputs/test-6.jop   ../inputs/test-6.exp
     Run file and check output  ../inputs/member_assignment.jop   ../inputs/member_assignment.exp
 
+RandomModTest
+    [Tags]    Random
+    Run file and check output  ../inputs/random-1.jop   ../inputs/random-1.exp
 
 
 

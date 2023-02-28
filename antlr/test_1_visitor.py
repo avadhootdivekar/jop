@@ -98,7 +98,6 @@ def run_1 (log=logFallBack , ip_string=None , ip_file=None) :
     # for i in range(count) : 
     #     print("Child " + str(i) + " : " + str(tree.getChild(i).getText() )  )
     log(LOG_DEBUG , "Tree : " + (tree.getText()) )
-    log(LOG_DEBUG , "Trees : " + str(Trees))
     print("\n\n")
     visitor = customVisitor()
     p = visitor.visit(tree)
@@ -167,6 +166,22 @@ class customListener(test_1Listener):
         print("customerListener string : " + abc)
         return super().enterStrings(ctx)
     
+    def enterCode(self, ctx: test_1Parser.CodeContext):
+        abc = ctx.getText()
+        print("customListener code : " + abc)
+        return super().enterCode(ctx)
+
+    def enterFcall(self, ctx: test_1Parser.FcallContext):
+        abc = ctx.getText()
+        print("customListener fcall : " + abc)
+        return super().enterFcall(ctx)
+
+    def enterMatch_b(self, ctx: test_1Parser.Match_bContext):
+        abc = ctx.getText()
+        print("customListener match_b : " + abc)
+        return super().enterMatch_b(ctx)
+
+
     def enterLines(self, ctx: test_1Parser.LinesContext):
         # global walker
         abc = ctx.getText()
@@ -181,16 +196,25 @@ class customListener(test_1Listener):
         return super().enterLine(ctx)
     
 
-    def enterA(self, ctx: test_1Parser.AContext):
-        abc = ctx.getText()
-        print("customListener a : " + abc)
-        return super().enterA(ctx)
+    # def enterA(self, ctx: test_1Parser.AContext):
+    #     abc = ctx.getText()
+    #     print("customListener a : " + abc)
+    #     return super().enterA(ctx)
 
     def enterMember(self, ctx: test_1Parser.MemberContext):
         abc = ctx.getText()
         print("customListener member : " + abc)
         return super().enterMember(ctx)
 
+    def enterStatement(self, ctx: test_1Parser.StatementContext):
+        abc = ctx.getText()
+        print("customListener statement : " + abc)
+        return super().enterStatement(ctx)
+
+    def enterCode_line(self, ctx: test_1Parser.Code_lineContext):
+        abc = ctx.getText()
+        print("customListener code_line : " + abc)
+        return super().enterCode_line(ctx)
 
     def enterAssign(self, ctx: test_1Parser.AssignContext):
         abc = ctx.getText()
@@ -211,6 +235,21 @@ class customListener(test_1Listener):
         abc = ctx.getText()
         print("customListener num : " + abc)
         return super().enterNum(ctx)
+
+    def enterUid(self, ctx: test_1Parser.UidContext):
+        abc = ctx.getText()
+        print("customListener uid : " + abc)
+        return super().enterUid(ctx)
+
+    def enterId_(self, ctx: test_1Parser.Id_Context):
+        abc = ctx.getText()
+        print("customListener id_ : " + abc)
+        return super().enterId_(ctx)
+
+    def enterStrings(self, ctx: test_1Parser.StringsContext):
+        abc = ctx.getText()
+        print("customListener strings : " + abc)
+        return super().enterStrings(ctx)
 
     def enterRvalue(self, ctx: test_1Parser.RvalueContext):
         abc = ctx.getText()
@@ -783,6 +822,21 @@ class customVisitor(test_1Visitor):
         logger.debug( "Exit visitexpr. retCode : {} , ans : {} , ctx : {}".format(ret , ans , ctx.getText() ) )
         return ret
 
+    def visitJop_func(self , ctx:test_1Parser.Jop_funcContext):
+        args = self.getArgs()
+        ret = cRet()
+        logger.debug("Here")
+        fNameRet =  ctx.id_().accept()
+        fName = fNameRet.value
+        logger.debug("fName : {}".format(fName) )
+        if args.lValue:
+            logger.warning("operations should be on RHS.")
+            return ret
+        if fName == "random":
+            ret.value = dict_op.getRandom(maxDepth=5 , maxWidth=5 , maxStrLen=10 , maxNum=100000)
+        logger.debug("Return is : {}".format(ret) )
+        return ret
+
     def evalDictOp(self , a , b , op ):
         ret = cRet()
         ret.value = None
@@ -879,6 +933,7 @@ class customVisitor(test_1Visitor):
         else : 
             logger.debug("[{}] : Custom arg was found. Args are : {}".format(string , args) )
             return True
+
 
     def visitId_(self, ctx: test_1Parser.Id_Context  ):
         self.commonVisitor(ctx, "id")

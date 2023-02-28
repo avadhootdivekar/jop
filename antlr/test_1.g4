@@ -3,7 +3,7 @@ grammar test_1;
 /*
  * Parser Rules
  */
-code 				: (lines | block+)+  EOF;
+code 				: (lines | block)*  EOF;
 // Children sequqnces should be greedy in the sense that parser starts from first line.
 // Thus anything before and after "lines" would be matched and parsing will end. catch
 // Tokens out of first "lines" would not be considered because of ".*"
@@ -11,29 +11,28 @@ code 				: (lines | block+)+  EOF;
 //rule1			:  rule1 OTHERS | rule1 var | rule1 string | string ;
 //string			: ('"'(LETTERS)*'"')+ ;
 
-a					: '^'
-					| a ( '^' )+
-					| ( '^' )+ a
-					;
-lines				: lines line+
-					| line+
-					;
+// a					: '^'
+// 					| a ( '^' )+
+// 					| ( '^' )+ a
+// 					;
+
+lines				: line+ ;
+
+
+line				: code_line+ | CMT;
+
+code_line			:  ( assign | rvalue  ) SEMIC ;
 
 assign				: (id_ | member)  eq  ( rvalue)  ;
 
-line				: ( assign ';' 	)
-					| ( rvalue  ';'	)
-					| ( CMT			)
-					;
-
 strings				: STR ;
 
-block				: '{' (lines | block )+ '}' ; 
+block				: OC (lines | block )+ CC ; 
 
 rule1				: member ;
 
 
-rvalue				: (uid | member | fcall | match_b | curly | list_ | expr) ;
+rvalue				: (uid | member | fcall | match_b | curly | list_ | expr | jop_func) ;
 
 member				: ( id_ (SEP|root) ((member_candidate ) ((SEP|root) member_candidate)* )			)
 					| ( id_ all_depth						)
@@ -47,7 +46,7 @@ id_					: ID ;
 bt					: BT ;
 bf 					: BF ;
 fcall				: ID match_b;
-match_b				: '(' (match_b | rvalue | getParent)* ')' ;
+match_b				: OB (match_b | rvalue | getParent)* CB ;
 m_pool				: (member)+ ;
 num					: (INT | FLT) ;
 all_depth			: SEP SEP ;
@@ -79,6 +78,7 @@ regex				: SYS_DEF 're' strings ;
 sys_fcall			: SYS_DEF fcall;
 root				: ROOT;
 eq					: EQ;
+jop_func			: JOP SEP fcall;
 
 //almostAll				: .*?lines.*?EOF ;
 /*
@@ -89,8 +89,6 @@ eq					: EQ;
 	This is test 1 for ANTLR 4 grammar.
 */
 
-CMT					: '//'.*?'\n' 
-					| '//'.*? EOF ;
 fragment T1 					: [a-z_] ;
 fragment T2 					: [A-Z] ;
 fragment LETTERS				: (T1|T2)+ ;
@@ -109,11 +107,13 @@ OC					: '{' ;
 CC					: '}' ;
 OS					: '[' ;
 CS					: ']' ;
+SEMIC				: ';' ;
 BT					: 'true'	;			// Boolean true
 BF					: 'false'	;			// Boolean false
 INT					: [0-9]+ ;
 OTHERS				: [ \n\t\r]+ -> skip;
 FLT					: INT '.' INT ;
+JOP					: 'jop';
 SYS_DEF				: '_';					// System defined internal macros/functions.
 STR					: '"' (ESC | . )*? '"' ; 
 ID					: LETTERS  (LETTERS | INT)* ;
@@ -124,3 +124,4 @@ EXP					: '^';
 MCMT				: '/*' .*? '*/' ;
 
 
+CMT					: '//'.*? ( '\n' | EOF) ;
