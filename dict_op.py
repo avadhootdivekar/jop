@@ -166,6 +166,9 @@ class ji (dict ):
 		return a
 
 	def scan(self , a):
+		'''
+		Copy the dictionary a (Deep copy) to self.
+		'''
 		vCopy=None
 		if isinstance(a , dict):
 			for k , v in a.items():
@@ -192,10 +195,16 @@ class ji (dict ):
 		return c 
 
 	def getRandomKey(self):
+		'''
+		Returns a random key at the top level.
+		'''
 		k , v = random.choice(list(self.items()))
 		return k
 
 	def getRandomPair(self , depth=-1):
+		'''
+		Get a random pair at the specified depth. Returns the key , value tuple
+		'''
 		log.debug("Random pair current node is : [{}]. ".format(self) ) 
 		if (-1 == depth) : 
 			depth = random.randrange(self.depth())
@@ -239,6 +248,9 @@ class ji (dict ):
 		return c
 	
 	def union(self , b):
+		'''
+		Union of self and b
+		'''
 		c = ji(copy.deepcopy(self))
 		if isinstance(b , dict) or isinstance(b , ji) :
 			c.update(b)
@@ -262,6 +274,9 @@ class ji (dict ):
 		return ret
 
 def getRandom( maxDepth=0 , maxWidth=10 , fixDepth=False , fixWidth=False , maxStrLen = 100 , maxNum=10000):
+	'''
+	Generate a random dictionary conforming to the specified constraints.
+	'''
 	log.debug("maxWidth : {} , maxDepth : {} , maxStrLen : {} , maxNum : {} ".format(
 				maxWidth , maxDepth , maxStrLen , maxNum
 	) )
@@ -283,7 +298,7 @@ def getRandom( maxDepth=0 , maxWidth=10 , fixDepth=False , fixWidth=False , maxS
 				else :
 					v = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
 			ret.update({k:v})
-		elif maxDepth == 0:
+		elif maxDepth == 1:
 			k = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
 			v = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
 			ret.update({k:v})
@@ -303,6 +318,10 @@ def countLeaves(a , count=0):
 		return count + 1
 
 def getRandomTypeValue(complex=True , maxNum = 100 , maxStrLen = 100 , maxArrayLen=100):
+	'''
+	Get a random variable of any type (num , str , dict, list). list and dict are complex types. 
+	Specify the constraints on the generated variable. 
+	'''
 	_typeMin  = 1
 	_typeNum  = 1
 	_typeStr  = 2
@@ -341,6 +360,10 @@ def getRandomTypeValue(complex=True , maxNum = 100 , maxStrLen = 100 , maxArrayL
 
 
 def filter( root = {} , m = None ):
+	'''
+	Filter a dictionary (root) as per matchCriteria m. Delete all non matching elements.
+	Returns a list of references of type refManager
+	'''
 	ret = []
 	log.debug("Filtering for match : {}".format(m) )
 	retDefault = None
@@ -409,7 +432,11 @@ def filter( root = {} , m = None ):
 
 	
 
-def getRefs(root , m):
+def getRefs(root:dict , m:matchCriteria):
+	'''
+	Provide references to all the members mataching with matchCriteria m.
+	Returns array of refManager instances
+	'''
 	arr = []
 	log.debug(" Root : {} , m : {} ".format(root , m) )
 	if ( not (isinstance(root , dict ) or isinstance(root , ji)) ):
