@@ -46,7 +46,12 @@ id_					: ID ;
 bt					: BT ;
 bf 					: BF ;
 fcall				: ID match_b;
-match_b				: OB (match_b | rvalue | getParent)* CB ;
+match_b				: OB ( (rvalue (',' rvalue)* )
+					| (getParent)* 
+					| (rvalue ?) 
+					| (assign ?) 
+					| (assign (',' assign)* )  ) CB ;
+					
 m_pool				: (member)+ ;
 num					: (INT | FLT) ;
 all_depth			: SEP SEP ;

@@ -2,7 +2,8 @@ import sys
 sys.path.append("/home/jop_workspace/")
 sys.path.append("/home/jop_workspace/antlr/")
 import test_1_visitor
-
+import dict_op
+import random
 class baseLib():
 	def __init__(self):
 		print("Hello world")
@@ -27,3 +28,15 @@ class baseLib():
 			else : 
 				raise Exception()
 
+	def random_op_check(self):
+		import test_1_visitor
+		iter = 10
+		for i in range(iter):
+			maxDepth = random.randint(1,25)
+			s = '''
+ret = jop.random(maxDepth={});
+			'''.format(maxDepth)
+			ret = test_1_visitor.run_1(ip_string = s)
+			act_depth = dict_op.depth(ret["value"]) 
+			print("Max depth : {} , actual depth : {}  , Dict : \n{}\n".format(maxDepth , act_depth , ret["value"]) )
+			assert((act_depth <= maxDepth) )

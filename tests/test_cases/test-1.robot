@@ -25,8 +25,8 @@ SimpleTests
     [Tags]    simpleTests
     Test new    Sample input
 
-RunTest
-    [Tags]    baseTest
+# RunTest
+#     [Tags]    baseTest
     Run file and check output  ../inputs/test-1.jop   ../inputs/test-1.exp
     Run file and check output  ../inputs/test-2.jop   ../inputs/test-2.exp
     Run file and check output  ../inputs/test-3.jop   ../inputs/test-3.exp
@@ -37,8 +37,9 @@ RunTest
 
 RandomModTest
     [Tags]    Random
-    Run file and check output  ../inputs/random-1.jop   ../inputs/random-1.exp
-
+    # Run file and check output  ../inputs/random-1.jop   ../inputs/random-1.exp
+    # Run file and check output  ../inputs/random-2.jop   ../inputs/random-1.exp
+    Random op check
 
 
 

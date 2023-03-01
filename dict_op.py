@@ -262,6 +262,9 @@ class ji (dict ):
 		return ret
 
 def getRandom( maxDepth=0 , maxWidth=10 , fixDepth=False , fixWidth=False , maxStrLen = 100 , maxNum=10000):
+	log.debug("maxWidth : {} , maxDepth : {} , maxStrLen : {} , maxNum : {} ".format(
+				maxWidth , maxDepth , maxStrLen , maxNum
+	) )
 	width = int( random.random() * maxWidth )
 	log.debug("width = {}".format(width) )
 	if width == 0:
@@ -271,7 +274,7 @@ def getRandom( maxDepth=0 , maxWidth=10 , fixDepth=False , fixWidth=False , maxS
 		log.debug("For {}-th member".format(i) )
 		v = None
 		k = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
-		if maxDepth > 0:
+		if maxDepth > 1:
 			if fixDepth :
 				v = getRandom(maxDepth= (maxDepth-1) , maxWidth=maxWidth , fixDepth=fixDepth , fixWidth=fixWidth , maxStrLen=maxStrLen , maxNum=maxNum)
 			else : 
