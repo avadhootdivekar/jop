@@ -1,3 +1,5 @@
+// This is sample code to check deep member assignment
+
 I1 = 35;
 I2 = "delta";
 I3 = {

@@ -25,7 +25,7 @@ code_line			:  ( assign | rvalue  ) SEMIC ;
 
 assign				: (id_ | member)  eq  ( rvalue)  ;
 
-strings				: STR ;
+strings				: STR | STR_SQ ;
 
 block				: OC (lines | block )+ CC ; 
 
@@ -121,6 +121,7 @@ FLT					: INT '.' INT ;
 JOP					: 'jop';
 SYS_DEF				: '_';					// System defined internal macros/functions.
 STR					: '"' (ESC | . )*? '"' ; 
+STR_SQ				: '\'' (ESC | . )*? '\'' ; 
 ID					: LETTERS  (LETTERS | INT)* ;
 // ERR_ID				: INT (LETTERS | INT)* ;
 EXP					: '^'; 

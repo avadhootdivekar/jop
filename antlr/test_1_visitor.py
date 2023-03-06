@@ -2,6 +2,7 @@ from http.client import RESET_CONTENT
 from inspect import currentframe, getframeinfo
 from itertools import islice
 import antlr4
+from antlr4.error.ErrorListener import ErrorListener
 import sys
 import re
 from antlr4.tree.Trees import Trees
@@ -76,16 +77,21 @@ def run_1 ( ip_string=None , ip_file=None) :
         inp = antlr4.FileStream(ip_file)
     elif (ip_string != None) :
         inp = antlr4.InputStream(ip_string)
+    errListener = customErrorListener()
     lexer = test_1Lexer(inp)
+    lexer.removeErrorListeners()                # Do not write errors to the terminal
+    lexer.addErrorListener(errListener)         # Add customer error listener which will write to the logs.
     tokens = antlr4.CommonTokenStream(lexer)
     parser =  test_1Parser(tokens)
+    parser.removeErrorListeners()                # Do not write errors to the terminal
+    parser.addErrorListener(errListener)        # Add customer error listener which will write to the logs.
+
     tree = parser.code()
     root_2 = parser.match_b()
     context = tree
 
     for token in tokens.tokens :
         logger.debug("Tokens : " + str(token))
-    #listener = test_1Listener()
     listener = customListener()
     global walker
     walker = antlr4.ParseTreeWalker()
@@ -93,10 +99,7 @@ def run_1 ( ip_string=None , ip_file=None) :
     logger.debug("\n\ncontext : " + str(context))
     c = tree.getChild(0)
     count = tree.getChildCount()
-    #s = Trees.ToStringtree(tree , None , parser)
-    # logger.debug("children : " + str(c.getChild(2).getText()) + " , count : " + str(count) )
-    # for i in range(count) : 
-    #     logger.debug("Child " + str(i) + " : " + str(tree.getChild(i).getText() )  )
+
     logger.debug("Tree : " + (tree.getText()) )
     logger.debug("\n\n")
     visitor = customVisitor()
@@ -106,6 +109,10 @@ def run_1 ( ip_string=None , ip_file=None) :
         logger.debug(" k : [{}] , v : [{}]".format(k,v))
     logger.debug("visitor return : p:{} ".format(p))
     logger.debug("{}Return value : {}".format(SEPERATOR , visitor.gRet))
+    if (errListener.getErrCount()):
+        logger.debug("There are non zero errors, failed to generate output.")
+        visitor.gRet["success"] = False
+
     return visitor.gRet
 
 
@@ -147,6 +154,24 @@ class cRet():
         return ("cRet : {{ retCode : {} key : {} , value : {} , text : {} , rootDefined : {} , sharedJi : {} , refs : {} }}".format(
                         self.retCode , self.key , self.value , self.text , self.rootDefined , self.sharedJi , self.refs) )
 
+
+
+class customErrorListener(ErrorListener):
+    def __init__(self):
+        self.__errCount = 0
+
+    def syntaxError(self, recognizer, offendingSymbol, line, charPositionInLine, msg, e):
+        logger.debug("There is syntax error.")
+        logger.debug("Syntax error is : {} , message : {} , symbol : {} , line : {}".format(e , msg , offendingSymbol , line) )
+        if "mismatched input '<EOF>'" in msg:
+            logger.debug("Ignoring this error")
+        else : 
+            logger.debug("Counting this error")
+            self.__errCount = self.__errCount + 1
+        return
+
+    def getErrCount(self):
+        return self.__errCount
 
 class customListener(test_1Listener): 
     def commonListener(self , ctx) :
@@ -270,7 +295,7 @@ class customVisitor(test_1Visitor):
     def __init__(self):
         global gVarMap
         self.gRet = { 
-            "success"   : False , 
+            "success"   : True , 
             "value"     : None ,
             "version"   : "1.0"
         }
@@ -513,6 +538,9 @@ class customVisitor(test_1Visitor):
     def visitRoot(self, ctx:test_1Parser.RootContext):
         args            = self.getArgs()
         ret             = cRet()
+        if args.rootDefined : 
+            logger.debug("Root defined multiple times.")
+            self.gRet["success"] = False
         ret.rootDefined = True
         ret.retCode     = ret.RETCODE_SUCCESS
         return ret
@@ -659,7 +687,8 @@ class customVisitor(test_1Visitor):
         logger.debug("REF LIST : {}".format(refList) )
         if ( not ( isinstance(refList, list) ) ): 
             logger.warning("reflist is of type : [{}]".format(type(refList)) )
-
+            self.gRet["success"] = False
+            
         if ctx.uid() != None:
             nArgs = self.newArgs()
             ret2  = ctx.uid().accept(self)
@@ -675,6 +704,7 @@ class customVisitor(test_1Visitor):
         elif (ctx.M() != None) :
             if (not args.rootDefined) : 
                 logger.warning("Select all without root.")
+                self.gRet["success"] = False
             else : 
                 m.matchType = m.MATCH_ALL
             logger.debug( "m cand in all members") 

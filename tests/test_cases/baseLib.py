@@ -4,7 +4,7 @@ sys.path.append("/home/jop_workspace/antlr/")
 import test_1_visitor
 import dict_op
 import random
-import numpy
+# import numpy
 
 class baseLib():
 	def __init__(self):
@@ -32,7 +32,7 @@ class baseLib():
 
 	def random_op_check(self):
 		import test_1_visitor
-		iter = 5
+		iter = 10
 		maxDepth = 15
 		maxWidth = 8
 		tList = []
@@ -49,3 +49,8 @@ ret = jop.random(maxDepth={} , maxWidth={});
 			print("Max depth : {} , maxWidth : {} , actual depth : {}  , Dict : \n{}\n".format(
 					maxDepth , maxWidth, act_depth , ret["value"]) )
 			assert((act_depth <= maxDepth) )
+			assert(ret["success"])
+			s = "A = {};ret = A;".format(ret["value"])
+			print("jop string : \n\n{}\n\n".format(s))
+			ret = test_1_visitor.run_1(ip_string = s)
+			assert(ret["success"])

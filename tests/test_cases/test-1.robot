@@ -33,7 +33,11 @@ SimpleTests
     Run file and check output  ../inputs/test-4.jop   ../inputs/test-4.exp
     Run file and check output  ../inputs/test-5.jop   ../inputs/test-5.exp
     Run file and check output  ../inputs/test-6.jop   ../inputs/test-6.exp
+    Run file and check output  ../inputs/test-7-non-string-keys.jop   ../inputs/test-7-non-string-keys.exp
     Run file and check output  ../inputs/member_assignment.jop   ../inputs/member_assignment.exp
+
+NegativeTests
+    Run file and check output  ../inputs/test-8-invalid-root-syntax.jop   ../inputs/test-8-invalid-root-syntax.exp
 
 RandomModTest
     [Tags]    Random

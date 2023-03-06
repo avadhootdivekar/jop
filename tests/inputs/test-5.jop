@@ -1,4 +1,4 @@
-
+// This is sample code for checking root (./) operator and access.
 
 I2 = {
 	"k 1" : {
