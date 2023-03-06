@@ -1,1 +1,1 @@
-{'success': False, 'value': {'check_member': {'I1': 35}, 45: {'deep_member': {56: 'delta'}}, 'I3': {'gamma': 35, 67: {'neon': 'radon'}}}, 'version': '1.0'}
+{'success': True, 'value': {'check_member': {'I1': 35}, 45: {'deep_member': {56: 'delta'}}, 'I3': {'gamma': 35, 67: {'neon': 'radon'}}}, 'version': '1.0'}

@@ -25,17 +25,25 @@ SimpleTests
     [Tags]    simpleTests
     Test new    Sample input
 
-RunTest
-    [Tags]    baseTest
+# RunTest
+#     [Tags]    baseTest
     Run file and check output  ../inputs/test-1.jop   ../inputs/test-1.exp
     Run file and check output  ../inputs/test-2.jop   ../inputs/test-2.exp
     Run file and check output  ../inputs/test-3.jop   ../inputs/test-3.exp
     Run file and check output  ../inputs/test-4.jop   ../inputs/test-4.exp
     Run file and check output  ../inputs/test-5.jop   ../inputs/test-5.exp
     Run file and check output  ../inputs/test-6.jop   ../inputs/test-6.exp
+    Run file and check output  ../inputs/test-7-non-string-keys.jop   ../inputs/test-7-non-string-keys.exp
     Run file and check output  ../inputs/member_assignment.jop   ../inputs/member_assignment.exp
 
+NegativeTests
+    Run file and check output  ../inputs/test-8-invalid-root-syntax.jop   ../inputs/test-8-invalid-root-syntax.exp
 
+RandomModTest
+    [Tags]    Random
+    # Run file and check output  ../inputs/random-1.jop   ../inputs/random-1.exp
+    # Run file and check output  ../inputs/random-2.jop   ../inputs/random-1.exp
+    Random op check
 
 
 

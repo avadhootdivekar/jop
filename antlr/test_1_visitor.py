@@ -2,12 +2,17 @@ from http.client import RESET_CONTENT
 from inspect import currentframe, getframeinfo
 from itertools import islice
 import antlr4
+from antlr4.error.ErrorListener import ErrorListener
 import sys
 import re
 from antlr4.tree.Trees import Trees
 import logging
 import copy
 import numbers
+import config
+import inspect 
+import ctypes
+
 
 # sys.path.append("/home/container/mounted/jop_repo/")
 sys.path.append("/home/jop_workspace/")
@@ -65,41 +70,38 @@ def getFLoc():
     loc_str = ' # %s:%d : ' % (filename, linenumber)
     return loc_str
 
-def logFallBack(level=0, str1="" , tid="000OO"):
-    print(  getFLoc()+ ":<< check "+str(tid) + " >> " + str1 )
 
-log = logFallBack
-
-def run_1 (log=logFallBack , ip_string=None , ip_file=None) :
-    print("Hello world!!")
+def run_1 ( ip_string=None , ip_file=None) :
+    logger.debug("Hello world!!")
     if (ip_file != None) : 
         inp = antlr4.FileStream(ip_file)
     elif (ip_string != None) :
         inp = antlr4.InputStream(ip_string)
+    errListener = customErrorListener()
     lexer = test_1Lexer(inp)
+    lexer.removeErrorListeners()                # Do not write errors to the terminal
+    lexer.addErrorListener(errListener)         # Add customer error listener which will write to the logs.
     tokens = antlr4.CommonTokenStream(lexer)
     parser =  test_1Parser(tokens)
+    parser.removeErrorListeners()                # Do not write errors to the terminal
+    parser.addErrorListener(errListener)        # Add customer error listener which will write to the logs.
+
     tree = parser.code()
     root_2 = parser.match_b()
     context = tree
 
     for token in tokens.tokens :
-        print("Tokens : " + str(token))
-    #listener = test_1Listener()
+        logger.debug("Tokens : " + str(token))
     listener = customListener()
     global walker
     walker = antlr4.ParseTreeWalker()
     walker.DEFAULT.walk(listener , tree)
-    print("\n\ncontext : " + str(context))
+    logger.debug("\n\ncontext : " + str(context))
     c = tree.getChild(0)
     count = tree.getChildCount()
-    #s = Trees.ToStringtree(tree , None , parser)
-    # print("children : " + str(c.getChild(2).getText()) + " , count : " + str(count) )
-    # for i in range(count) : 
-    #     print("Child " + str(i) + " : " + str(tree.getChild(i).getText() )  )
-    log(LOG_DEBUG , "Tree : " + (tree.getText()) )
-    log(LOG_DEBUG , "Trees : " + str(Trees))
-    print("\n\n")
+
+    logger.debug("Tree : " + (tree.getText()) )
+    logger.debug("\n\n")
     visitor = customVisitor()
     p = visitor.visit(tree)
     logger.debug(SEPERATOR + "gVarMap :  \n" )
@@ -107,6 +109,10 @@ def run_1 (log=logFallBack , ip_string=None , ip_file=None) :
         logger.debug(" k : [{}] , v : [{}]".format(k,v))
     logger.debug("visitor return : p:{} ".format(p))
     logger.debug("{}Return value : {}".format(SEPERATOR , visitor.gRet))
+    if (errListener.getErrCount()):
+        logger.debug("There are non zero errors, failed to generate output.")
+        visitor.gRet["success"] = False
+
     return visitor.gRet
 
 
@@ -118,6 +124,7 @@ class cArgs():
     sharedJi                        =   None
     value                           =   None
     refs                            =   None
+    functionParams                  =   False
     def __init__(self):
         inArray     = None
         inDict      = None
@@ -148,6 +155,24 @@ class cRet():
                         self.retCode , self.key , self.value , self.text , self.rootDefined , self.sharedJi , self.refs) )
 
 
+
+class customErrorListener(ErrorListener):
+    def __init__(self):
+        self.__errCount = 0
+
+    def syntaxError(self, recognizer, offendingSymbol, line, charPositionInLine, msg, e):
+        logger.debug("There is syntax error.")
+        logger.debug("Syntax error is : {} , message : {} , symbol : {} , line : {}".format(e , msg , offendingSymbol , line) )
+        if "mismatched input '<EOF>'" in msg:
+            logger.debug("Ignoring this error")
+        else : 
+            logger.debug("Counting this error")
+            self.__errCount = self.__errCount + 1
+        return
+
+    def getErrCount(self):
+        return self.__errCount
+
 class customListener(test_1Listener): 
     def commonListener(self , ctx) :
         return
@@ -156,7 +181,7 @@ class customListener(test_1Listener):
         # global walker
         abc = "" + ctx.getText()
         # walker.DEFAULT.walk(self,ctx)
-        print("customListener Rule1 : " + abc)
+        logger.debug("customListener Rule1 : " + abc)
         return super().enterRule1(ctx)
 
     
@@ -164,57 +189,97 @@ class customListener(test_1Listener):
         # global walker
         abc = ctx.getText()
         # walker.DEFAULT.walk(self,ctx)
-        print("customerListener string : " + abc)
+        logger.debug("customerListener string : " + abc)
         return super().enterStrings(ctx)
     
+    def enterCode(self, ctx: test_1Parser.CodeContext):
+        abc = ctx.getText()
+        logger.debug("customListener code : " + abc)
+        return super().enterCode(ctx)
+
+    def enterFcall(self, ctx: test_1Parser.FcallContext):
+        abc = ctx.getText()
+        logger.debug("customListener fcall : " + abc)
+        return super().enterFcall(ctx)
+
+    def enterMatch_b(self, ctx: test_1Parser.Match_bContext):
+        abc = ctx.getText()
+        logger.debug("customListener match_b : " + abc)
+        return super().enterMatch_b(ctx)
+
+
     def enterLines(self, ctx: test_1Parser.LinesContext):
         # global walker
         abc = ctx.getText()
         # walker.DEFAULT.walk(self,ctx)
-        print("customListener lines : " + abc)
+        logger.debug("customListener lines : " + abc)
         return super().enterLines(ctx)
     
 
     def enterLine(self, ctx: test_1Parser.LineContext):
         abc = ctx.getText()
-        print("customListener line : " + abc)
+        logger.debug("customListener line : " + abc)
         return super().enterLine(ctx)
     
 
-    def enterA(self, ctx: test_1Parser.AContext):
-        abc = ctx.getText()
-        print("customListener a : " + abc)
-        return super().enterA(ctx)
+    # def enterA(self, ctx: test_1Parser.AContext):
+    #     abc = ctx.getText()
+    #     logger.debug("customListener a : " + abc)
+    #     return super().enterA(ctx)
 
     def enterMember(self, ctx: test_1Parser.MemberContext):
         abc = ctx.getText()
-        print("customListener member : " + abc)
+        logger.debug("customListener member : " + abc)
         return super().enterMember(ctx)
 
+    def enterStatement(self, ctx: test_1Parser.StatementContext):
+        abc = ctx.getText()
+        logger.debug("customListener statement : " + abc)
+        return super().enterStatement(ctx)
+
+    def enterCode_line(self, ctx: test_1Parser.Code_lineContext):
+        abc = ctx.getText()
+        logger.debug("customListener code_line : " + abc)
+        return super().enterCode_line(ctx)
 
     def enterAssign(self, ctx: test_1Parser.AssignContext):
         abc = ctx.getText()
-        print("customListener assign : " + abc)
+        logger.debug("customListener assign : " + abc)
         return super().enterAssign(ctx)
 
     def enterMatch_b(self, ctx: test_1Parser.Match_bContext):
         abc = ctx.getText()
-        print("customListener match_b : " + abc)
+        logger.debug("customListener match_b : " + abc)
         return super().enterMatch_b(ctx)
 
     def enterBlock(self, ctx: test_1Parser.BlockContext):
         abc = ctx.getText()
-        print("customListener block : " + abc)
+        logger.debug("customListener block : " + abc)
         return super().enterBlock(ctx)
 
     def enterNum(self, ctx: test_1Parser.NumContext):
         abc = ctx.getText()
-        print("customListener num : " + abc)
+        logger.debug("customListener num : " + abc)
         return super().enterNum(ctx)
+
+    def enterUid(self, ctx: test_1Parser.UidContext):
+        abc = ctx.getText()
+        logger.debug("customListener uid : " + abc)
+        return super().enterUid(ctx)
+
+    def enterId_(self, ctx: test_1Parser.Id_Context):
+        abc = ctx.getText()
+        logger.debug("customListener id_ : " + abc)
+        return super().enterId_(ctx)
+
+    def enterStrings(self, ctx: test_1Parser.StringsContext):
+        abc = ctx.getText()
+        logger.debug("customListener strings : " + abc)
+        return super().enterStrings(ctx)
 
     def enterRvalue(self, ctx: test_1Parser.RvalueContext):
         abc = ctx.getText()
-        print("customListener rvalue : " + abc)
+        logger.debug("customListener rvalue : " + abc)
         return super().enterRvalue(ctx)
 
 class response():
@@ -230,7 +295,7 @@ class customVisitor(test_1Visitor):
     def __init__(self):
         global gVarMap
         self.gRet = { 
-            "success"   : False , 
+            "success"   : True , 
             "value"     : None ,
             "version"   : "1.0"
         }
@@ -252,7 +317,7 @@ class customVisitor(test_1Visitor):
         return ret
 
     def visitDict_b_op(self, ctx: test_1Parser.Dict_b_opContext  ):
-        log(LOG_DEBUG , "DICT OPS not implemented.." , tid="100bw")
+        logger.debug( "DICT OPS not implemented.." )
         args = self.getArgs()
         ret = cRet()
         ret.value = ""
@@ -302,7 +367,7 @@ class customVisitor(test_1Visitor):
     def visitLines(self, ctx: test_1Parser.LinesContext  ):
         args = self.getArgs()
         self.commonVisitor(ctx , "Lines")
-        print("visitor count : " + str(ctx.getChildCount()) )
+        logger.debug("visitor count : " + str(ctx.getChildCount()) )
         # self.visit()
         return super().visitLines(ctx)
 
@@ -312,7 +377,7 @@ class customVisitor(test_1Visitor):
         ret.value = []
         ret.retCode = ret.RETCODE_GENERIC_FAILURE
         count = ctx.getChildCount()
-        # log(LOG_DEBUG , "list tokens : " + str(ctx.getTokens()))
+        # logger.debug( "list tokens : " + str(ctx.getTokens()))
         for i in range(count-1):
             if i==0:
                 # Skip Opening and closing brackets.
@@ -365,11 +430,11 @@ class customVisitor(test_1Visitor):
             nArgs = self.newArgs()
             retV = ctx.uid(1).accept(self)
         elif (ctx.list_() != None ) :
-            log(LOG_DEBUG , "curly value for pair")
+            logger.debug( "curly value for pair")
             nArgs = self.newArgs()
             retV = ctx.list_().accept(self)
         elif (ctx.curly() != None ) :
-            log(LOG_DEBUG , "list value for pair")
+            logger.debug( "list value for pair")
             nArgs = self.newArgs()
             retV = ctx.curly().accept(self)
         logger.error( "pair key : {} , v : {} ".format(retK.value , retV.value) )
@@ -417,6 +482,7 @@ class customVisitor(test_1Visitor):
         return ret
     
     def visitAssign(self, ctx: test_1Parser.AssignContext  ):
+        args = self.getArgs()
         self.commonVisitor(ctx , "Assign")
         value = None
         newVar = True
@@ -438,12 +504,14 @@ class customVisitor(test_1Visitor):
             try:
                 varName = ret2.text
                 nArgs = self.newArgs()
-                ret = ctx.rvalue().accept(self)
-                #log(LOG_DEBUG , "rvalue : {}".format(ctx.rvalue()) , tid="100bo")
                 logger.debug( "Derived rvalue : {}  , for string : {}".format(value, ctx.rvalue().getText())  )
                 # Direct variable assignment.
                 logger.debug("varName : {} , value : {}".format(varName , value)   )
-                gVarMap[varName] = (value)
+                if args.functionParams:
+                    ret.value = {varName : value}
+                else :
+                    gVarMap[varName] = (value)
+                    ret.value = value
             except Exception as e:
                 ret = cRet()
                 ret.retCode =ret.RETCODE_GENERIC_FAILURE
@@ -470,6 +538,9 @@ class customVisitor(test_1Visitor):
     def visitRoot(self, ctx:test_1Parser.RootContext):
         args            = self.getArgs()
         ret             = cRet()
+        if args.rootDefined : 
+            logger.debug("Root defined multiple times.")
+            self.gRet["success"] = False
         ret.rootDefined = True
         ret.retCode     = ret.RETCODE_SUCCESS
         return ret
@@ -503,7 +574,7 @@ class customVisitor(test_1Visitor):
         if (ctx.id_() != None ):
             rootRet = ctx.id_().accept(self)
         else:
-            log(LOG_DEBUG , "Unexpected error, None ID in member." , tid="100bq")
+            logger.debug( "Unexpected error, None ID in member." )
         self.commonVisitor(ctx , "member")
         logger.debug("Member candidatess : {} ".format(ctx.getText()) )
 
@@ -616,7 +687,8 @@ class customVisitor(test_1Visitor):
         logger.debug("REF LIST : {}".format(refList) )
         if ( not ( isinstance(refList, list) ) ): 
             logger.warning("reflist is of type : [{}]".format(type(refList)) )
-
+            self.gRet["success"] = False
+            
         if ctx.uid() != None:
             nArgs = self.newArgs()
             ret2  = ctx.uid().accept(self)
@@ -632,9 +704,10 @@ class customVisitor(test_1Visitor):
         elif (ctx.M() != None) :
             if (not args.rootDefined) : 
                 logger.warning("Select all without root.")
+                self.gRet["success"] = False
             else : 
                 m.matchType = m.MATCH_ALL
-            log(LOG_DEBUG , "m cand in all members") 
+            logger.debug( "m cand in all members") 
             success = True
         
         if ( not args.lValue): 
@@ -774,13 +847,54 @@ class customVisitor(test_1Visitor):
             else:
                 pass
         else:
-            log(LOG_WARNING , "expression without operator. i.e. simple uid.")
+            logger.warning( "expression without operator. i.e. simple uid.")
             if ctx.expr_1() != None :
                 nArgs = self.newArgs()
                 ret = ctx.expr_1().accept(self)
             else: 
                 logger.warning("expr_1 not defined : " )
         logger.debug( "Exit visitexpr. retCode : {} , ans : {} , ctx : {}".format(ret , ans , ctx.getText() ) )
+        return ret
+
+    def visitJop_func(self , ctx:test_1Parser.Jop_funcContext):
+        args = self.getArgs()
+        ret = cRet()
+        logger.debug("Here")
+        fNameRet =  ctx.fcall().ID()
+        fName = fNameRet
+        paramList = ctx.fcall().match_b().rvalue()
+        namedParamList = ctx.fcall().match_b().assign()
+        logger.debug("fName : '{}' , type : {}".format(fName , type(fName)) )
+        logger.debug("unnamed params : '{}' , named params : '{}'".format(paramList , namedParamList) )
+        maxWidth    = 6
+        maxDepth    = 5
+        maxNum      = 1000000
+        maxStrLen   = 20
+        if len(paramList) > 0 and (len(namedParamList) == 0):
+            for param in paramList : 
+                logger.debug("param i : {}".format(param.getText()) )
+        elif (len(namedParamList) > 0) :
+            frame = inspect.stack()[0][0]
+            for param in namedParamList :
+                nArgs = self.newArgs()
+                nArgs.functionParams = True
+                retParam = param.accept(self)
+                logger.debug("param i : {} , ret = {}".format(param.getText() , retParam) )
+                for  k in config.RAN_PAR_MAP.keys():
+                    if ( (k in retParam.value) and (k in locals()) ):
+                        logger.debug(" Locals : \n{}\nretValue : {}".format(frame.f_locals ,  retParam.value[k]))
+                        logger.debug("Before  x : '{}' , value of x : '{}' ".format(k , locals()[k]) )
+                        frame.f_locals[k] = retParam.value[k]
+                        ctypes.pythonapi.PyFrame_LocalsToFast(ctypes.py_object(frame),  ctypes.c_int(1))
+                        logger.debug("After  x : '{}' , value of x : '{}' ".format(k , locals()[k]) )
+
+        if args.lValue:
+            logger.warning("operations should be on RHS.")
+            return ret
+        if str(fName) == "random":
+            logger.debug("Creating random dict")
+            ret.value = dict_op.getRandom(maxDepth=maxDepth , maxWidth=maxWidth , maxStrLen=maxStrLen , maxNum=maxNum)
+        logger.debug("Return is : {}".format(ret) )
         return ret
 
     def evalDictOp(self , a , b , op ):
@@ -809,18 +923,18 @@ class customVisitor(test_1Visitor):
         c = {}
         ret = cRet()
         ret.retCode = RET_FAILURE
-        log(LOG_DEBUG , "op : "  +str(op) + " a : " + str(a) +" ,  b : " + str(b) + " , c : "+ str(c)\
-            + " , type a : "  +str(type(a)) + " , type b : " + str(type(b)) ,tid="100aj"  )
+        logger.debug( "op : "  +str(op) + " a : " + str(a) +" ,  b : " + str(b) + " , c : "+ str(c)\
+            + " , type a : "  +str(type(a)) + " , type b : " + str(type(b))  )
         if (type(a) != dict) or (type(b) != dict) :
-            log(LOG_DEBUG , "non dict received in elementWiseOp. " , tid="100ab")
+            logger.debug( "non dict received in elementWiseOp. ")
             return RET_FAILURE , ""
         for k in a.keys():
-            log(LOG_DEBUG , "Checking key : " + str(k) , tid="100ai")
+            logger.debug( "Checking key : " + str(k) )
             if (k in b):
                 ta = type(a[k])
                 tb = type(b[k])
                 if ( (ta!=dict) and (tb!=dict) ) :
-                    log(LOG_DEBUG , "In leaf nodes" , tid="100ak")
+                    logger.debug( "In leaf nodes" )
                     # If both are leaf nodes, perform op.
                     if ( ta == tb) :
                         if op == "+":
@@ -841,15 +955,15 @@ class customVisitor(test_1Visitor):
                             else:
                                 c[k] = a[k] / b[k]
                     else:
-                        log(LOG_WARNING , "Typemismatch for leaf nodes. " , tid="100ac")
+                        logger.warning( "Typemismatch for leaf nodes. " )
                 elif( (ta!=dict) or (tb!=dict) ):
-                    log(LOG_WARNING , "Nodes are leaf and non-leaf, Assigning one random node without operation." , tid="100ad")
+                    logger.warning("Nodes are leaf and non-leaf, Assigning one random node without operation." )
                     c[k] = b[k]
                 else:
                     ret2 = self.elementWiseOp(a[k] , b[k] , op)
                     ret.value[k] = ret2.value
             else:
-                log(LOG_DEBUG , "Skipping key : {} ".format(k) ,tid="100bv" )
+                logger.debug("Skipping key : {} ".format(k) )
         logger.debug("op : {}  a : {} ,  b : {} , c : {} ".format(op , a , b , c)   )
         ret.value = c
         return ret;
@@ -880,6 +994,7 @@ class customVisitor(test_1Visitor):
             logger.debug("[{}] : Custom arg was found. Args are : {}".format(string , args) )
             return True
 
+
     def visitId_(self, ctx: test_1Parser.Id_Context  ):
         self.commonVisitor(ctx, "id")
         args= self.getArgs()
@@ -897,7 +1012,7 @@ class customVisitor(test_1Visitor):
         return ret
         
     def visitRvalue(self, ctx: test_1Parser.RvalueContext  ):
-        print("Non need to explicitly implement the rvalue, as rvalue would just call one of the OR'd methods.")
+        logger.debug("No need to explicitly implement the rvalue, as rvalue would just call one of the OR'd methods.")
         return super().visitRvalue(ctx)
 
     def visitNum(self, ctx: test_1Parser.NumContext  ):
@@ -963,7 +1078,7 @@ class customVisitor(test_1Visitor):
         ret.retCode = ret.RETCODE_GENERIC_FAILURE
         v = None
         f = ""
-        log(LOG_DEBUG , getFLoc() + "Pathmaymatch. " )
+        logger.debug( getFLoc() + "Pathmaymatch. " )
         if f == "re":
             v = ""
         elif f == "replace":
@@ -1018,7 +1133,7 @@ class customVisitor(test_1Visitor):
             count = ctx.getChildCount()
             logger.debug( "visitor  :{} : {} ,  child count : ".format( ruleName , abc , count) )        
         except Exception as e:
-            log(LOG_ERROR , "Exception in commin visitor : {}".format(e)  )
+            logger.error( "Exception in commin visitor : {}".format(e)  )
 
 def isNum(param):
     if (isinstance(param , numbers.Number)):

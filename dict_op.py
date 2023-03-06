@@ -4,6 +4,7 @@ import numbers
 import random
 import re
 import copy
+import string
 
 # pdb.set_trace()
 
@@ -151,6 +152,7 @@ class response():
 
 class ji (dict ):
 	def __init__(self , a={}):
+		super().clear()
 		super().update(copy.deepcopy(a)) 
 
 	def depth(self):
@@ -164,6 +166,9 @@ class ji (dict ):
 		return a
 
 	def scan(self , a):
+		'''
+		Copy the dictionary a (Deep copy) to self.
+		'''
 		vCopy=None
 		if isinstance(a , dict):
 			for k , v in a.items():
@@ -190,10 +195,16 @@ class ji (dict ):
 		return c 
 
 	def getRandomKey(self):
+		'''
+		Returns a random key at the top level.
+		'''
 		k , v = random.choice(list(self.items()))
 		return k
 
 	def getRandomPair(self , depth=-1):
+		'''
+		Get a random pair at the specified depth. Returns the key , value tuple
+		'''
 		log.debug("Random pair current node is : [{}]. ".format(self) ) 
 		if (-1 == depth) : 
 			depth = random.randrange(self.depth())
@@ -237,6 +248,9 @@ class ji (dict ):
 		return c
 	
 	def union(self , b):
+		'''
+		Union of self and b
+		'''
 		c = ji(copy.deepcopy(self))
 		if isinstance(b , dict) or isinstance(b , ji) :
 			c.update(b)
@@ -252,6 +266,45 @@ class ji (dict ):
 			log.info("Key as well as keyRegex specified, please spcify only one.")
 		# Do same for value
 		return filter(root=self , m = m)
+	
+	def getRandom(self ,  maxDepth=0 , maxWidth=10 , fixDepth=False , fixWidth=False , maxStrLen=100 , maxNum=100) :
+		super().clear()
+		ret = getRandom(maxDepth=maxDepth , maxWidth=maxWidth , fixDepth=fixDepth , fixWidth=fixWidth , maxStrLen=maxStrLen , maxNum=maxNum)
+		super().update(ret)
+		return ret
+
+def getRandom( maxDepth=0 , maxWidth=10 , fixDepth=False , fixWidth=False , maxStrLen = 100 , maxNum=10000):
+	'''
+	Generate a random dictionary conforming to the specified constraints.
+	'''
+	log.debug("maxWidth : {} , maxDepth : {} , maxStrLen : {} , maxNum : {} ".format(
+				maxWidth , maxDepth , maxStrLen , maxNum
+	) )
+	width = int( random.random() * maxWidth )
+	log.debug("width = {}".format(width) )
+	if width == 0:
+		width = 1
+	ret= {}
+	for i in range(width):
+		log.debug("For {}-th member".format(i) )
+		v = None
+		k = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
+		if maxDepth > 1:
+			if fixDepth :
+				v = getRandom(maxDepth= (maxDepth-1) , maxWidth=maxWidth , fixDepth=fixDepth , fixWidth=fixWidth , maxStrLen=maxStrLen , maxNum=maxNum)
+			else : 
+				if random.randint(1,10) > 5:
+					v = getRandom(maxDepth= (maxDepth-1) , maxWidth=maxWidth , fixDepth=fixDepth , fixWidth=fixWidth, maxStrLen=maxStrLen , maxNum=maxNum)
+				else :
+					v = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
+			ret.update({k:v})
+		elif maxDepth == 1:
+			k = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
+			v = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
+			ret.update({k:v})
+	log.debug("Generated random dict : {}".format(ret) )
+	return ret
+	
 
 def depth(a):
 	if isinstance(a, ji) or isinstance(a , dict):
@@ -264,14 +317,53 @@ def countLeaves(a , count=0):
 	else :
 		return count + 1
 
+def getRandomTypeValue(complex=True , maxNum = 100 , maxStrLen = 100 , maxArrayLen=100):
+	'''
+	Get a random variable of any type (num , str , dict, list). list and dict are complex types. 
+	Specify the constraints on the generated variable. 
+	'''
+	_typeMin  = 1
+	_typeNum  = 1
+	_typeStr  = 2
+	_typeArr  = 3
+	_typeDict = 4
+	_typeMax  = 4
+
+	ret = None
+
+	if not complex:
+		r = random.randint(_typeNum , _typeStr)
+	else : 
+		r = random.randint(_typeMin , _typeMax)
+
+	if r == _typeNum :
+		ret = random.random() * maxNum
+	elif r == _typeStr : 
+		ret = "".join(random.choices(string.ascii_letters + string.digits ,
+			        k = maxStrLen))
+	elif (r == _typeArr):
+		ret = []
+		len = int( random.random() * maxArrayLen )
+		for i in range(len):
+			ret.append(getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum))
+	elif (r == _typeDict):
+		k = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
+		v = getRandomTypeValue(complex=False, maxStrLen=maxStrLen , maxNum=maxNum)
+		log.debug("key : {}  , value : {}".format(k,v) )
+		ret = {k:v}
+	else : 
+		log.warning("Incorrect type {}".format(r) )
+	log.debug("Returning random Value : {}".format(ret) )
+	return ret
 
 
-def getRandom(maxDepth=0):
-	for i in range(maxDepth):
-		getRandom()
 
 
 def filter( root = {} , m = None ):
+	'''
+	Filter a dictionary (root) as per matchCriteria m. Delete all non matching elements.
+	Returns a list of references of type refManager
+	'''
 	ret = []
 	log.debug("Filtering for match : {}".format(m) )
 	retDefault = None
@@ -340,7 +432,11 @@ def filter( root = {} , m = None ):
 
 	
 
-def getRefs(root , m):
+def getRefs(root:dict , m:matchCriteria):
+	'''
+	Provide references to all the members mataching with matchCriteria m.
+	Returns array of refManager instances
+	'''
 	arr = []
 	log.debug(" Root : {} , m : {} ".format(root , m) )
 	if ( not (isinstance(root , dict ) or isinstance(root , ji)) ):

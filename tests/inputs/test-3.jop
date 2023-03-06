@@ -1,3 +1,6 @@
+// This is sample code for memberwise string addition and to check code spanning multiple lines.
+
+
 some_variable_here 
   =  {  "alpha" : "_check_1_ "
 

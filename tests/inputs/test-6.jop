@@ -1,3 +1,5 @@
+// This is sample code to check root operator and select_all (*) operator.
+
 I1 = {
 	"k 1" : {
 		"k 1.1" : {
