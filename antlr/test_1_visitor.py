@@ -25,12 +25,7 @@ logging.basicConfig(filename="/var/log/visitor.log" ,  level=logging.DEBUG , for
 logger = logging.getLogger(__name__.split('.')[0])
 logger.debug("This is first debug message")
 logger.error("This is first error message")
-LOG_ERROR               = 1
-LOG_WARNING             = 2
-LOG_INFO                = 3
-LOG_DEBUG               = 4
-LOG_VERBOSE             = 5
-LOG_FILTER_LEVEL        = 5
+
 RET_FAILURE             = -1
 RET_SUCCESS             = 0
 RET_TREE                = 1
@@ -207,6 +202,10 @@ class customListener(test_1Listener):
         logger.debug("customListener match_b : " + abc)
         return super().enterMatch_b(ctx)
 
+    def enterList_(self, ctx:test_1Parser.List_Context):
+        abc = ctx.getText()
+        logger.debug("customListener list_ : " + abc)
+        return super().enterList_(ctx)
 
     def enterLines(self, ctx: test_1Parser.LinesContext):
         # global walker
@@ -307,10 +306,7 @@ class customVisitor(test_1Visitor):
         args = self.getArgs()
         ret = cRet()
         value = None
-        if (ctx.match_b(0) != None):
-            nArg = self.newArgs()
-            ret = ctx.match_b(0).accept(self)
-        elif (ctx.rvalue(0) != None):
+        if (ctx.rvalue(0) != None):
             nArg = self.newArgs()
             ret = ctx.rvalue(0).accept(self)
         logger.debug( "ret : {} ,".format(ret)   )
@@ -689,17 +685,21 @@ class customVisitor(test_1Visitor):
             logger.warning("reflist is of type : [{}]".format(type(refList)) )
             self.gRet["success"] = False
             
-        if ctx.uid() != None:
+        if ctx.possible_key() != None:
             nArgs = self.newArgs()
-            ret2  = ctx.uid().accept(self)
+            ret2  = ctx.possible_key().accept(self)
             logger.debug("level [{}],  RET : [{}]".format(args.level , ret2) )
+            if ctx.possible_num() != None : 
+                logger.debug("Accessing list member")
             if type(ret2.value) == dict : 
                 logger.warning("Dictionary specified as member.. ")
             k = ret2.value
             m.key = k 
-        elif ctx.match_b() != None :
+        elif ctx.possible_key() != None :
             nArgs = self.newArgs()
-            ret = (ctx.match_b().accept(self))
+            ret = (ctx.possible_key().accept(self))
+            k = ret.value
+            m.key = k
             success = True
         elif (ctx.M() != None) :
             if (not args.rootDefined) : 
@@ -718,6 +718,19 @@ class customVisitor(test_1Visitor):
                     refList[0] = dict_op.refManager()
                     refList[0].setRef(d , k)
                     logger.debug("test")
+                    if (ctx.possible_num() != None):
+                        ok , v = refList[0].getValue()
+                        if ok and isinstance(v , list):
+                            logger.debug("value is list. ")
+                            arrgIndex = self.newArgs()
+                            retIndex = ctx.possible_num().accept(self)
+                            logger.debug("retIndex : {}".format(retIndex) )
+                            refList[0].setRef(v , index = retIndex.value)
+                            ok , d = refList[0].getValue()
+                            logger.debug("Ref 0 : {}".format(d) )
+                else : 
+                    logger.warning("ok : {} , d : {} ".format(ok , d) )
+                    self.gRet["success"] = False
             else : 
                 if (m.matchType != m.MATCH_ALL) :
                     # If matchAll , no need to do anything, 
