@@ -368,7 +368,7 @@ class customVisitor(test_1Visitor):
         return super().visitLines(ctx)
 
     def visitList_(self, ctx: test_1Parser.List_Context   ):
-        self.commonVisitor(ctx , "LIST_")
+        logger.debug("Here")
         ret = cRet()
         ret.value = []
         ret.retCode = ret.RETCODE_GENERIC_FAILURE
@@ -719,15 +719,17 @@ class customVisitor(test_1Visitor):
                     refList[0].setRef(d , k)
                     logger.debug("test")
                     if (ctx.possible_num() != None):
-                        ok , v = refList[0].getValue()
-                        if ok and isinstance(v , list):
-                            logger.debug("value is list. ")
-                            arrgIndex = self.newArgs()
-                            retIndex = ctx.possible_num().accept(self)
-                            logger.debug("retIndex : {}".format(retIndex) )
-                            refList[0].setRef(v , index = retIndex.value)
-                            ok , d = refList[0].getValue()
-                            logger.debug("Ref 0 : {}".format(d) )
+                        for i in range(len(ctx.possible_num())):
+                            logger.debug("Getting index : {}".format(i) )
+                            ok , v = refList[0].getValue()
+                            if ok and isinstance(v , list):
+                                logger.debug("value is list. ")
+                                arrgIndex = self.newArgs()
+                                retIndex = ctx.possible_num(i).accept(self)
+                                logger.debug("retIndex : {}".format(retIndex) )
+                                refList[0].setRef(v , index = retIndex.value)
+                                ok , d = refList[0].getValue()
+                                logger.debug("Ref 0 : {}".format(d) )
                 else : 
                     logger.warning("ok : {} , d : {} ".format(ok , d) )
                     self.gRet["success"] = False

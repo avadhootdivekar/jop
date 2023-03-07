@@ -46,7 +46,9 @@ possible_bool		: ( id_ | num | BF | BT | match_b | fcall);
 
 possible_key		: (possible_str | possible_num | possible_bool);
 
-member_candidate	: ( possible_key | M | (possible_key OS possible_num CS) );
+member_candidate	: ( possible_key (OS possible_num CS)*
+					| M 
+					);
 
 index				: (num | id_ | match_b);
 
@@ -72,8 +74,7 @@ curly				: ( OC curly (',' curly)* CC 	)
 					| ( OC pair (',' curly)* CC  	)
 					| (OC CC) ;
 
-list_				: ( OS uid (',' uid|curly )* CS )
-					| ( OS curly (',' curly|uid )* CS )
+list_				: ( OS rvalue (',' rvalue )* CS )
 					| (OS CS)
 					;
 
