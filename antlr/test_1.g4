@@ -38,7 +38,19 @@ member				: ( id_ (SEP|root) ((member_candidate ) ((SEP|root) member_candidate)*
 					| ( id_ all_depth						)
 					;
 
-member_candidate	: (uid | match_b | M );
+possible_str		: (	id_ | strings | match_b | fcall);
+
+possible_num		: ( id_ | num | match_b | fcall );
+
+possible_bool		: ( id_ | num | BF | BT | match_b | fcall);
+
+possible_key		: (possible_str | possible_num | possible_bool);
+
+member_candidate	: ( possible_key (OS possible_num CS)*
+					| M 
+					);
+
+index				: (num | id_ | match_b);
 
 /* uid are unique identifiers. These can be vars,numbers, strings or even function names without branckets etc. */ 
 uid					: (num | id_ | bt | bf | strings) ;
@@ -62,8 +74,7 @@ curly				: ( OC curly (',' curly)* CC 	)
 					| ( OC pair (',' curly)* CC  	)
 					| (OC CC) ;
 
-list_				: ( OS uid (',' uid|curly )* CS )
-					| ( OS curly (',' curly|uid )* CS )
+list_				: ( OS rvalue (',' rvalue )* CS )
 					| (OS CS)
 					;
 
@@ -98,7 +109,7 @@ fragment T1 					: [a-z_] ;
 fragment T2 					: [A-Z] ;
 fragment LETTERS				: (T1|T2)+ ;
 fragment ESC		: '\\\\' | '\\"' ;
-J_LIT				: '"""' (ESC | . )*? '"""' ;
+// J_LIT				: '"""' (ESC | . )*? '"""' ;
 SEP					: '.' ; //stands for seperator.
 EQ					: '=' ;
 P					: '+' ; 
