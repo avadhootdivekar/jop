@@ -671,6 +671,7 @@ class customVisitor(test_1Visitor):
         m = dict_op.matchCriteria()
         k = None
         ret2 = None
+        index = []
         if (args == None):
             logger.debug("Custom args not found. ")
         else :
@@ -695,11 +696,6 @@ class customVisitor(test_1Visitor):
                 logger.warning("Dictionary specified as member.. ")
             k = ret2.value
             m.key = k 
-        elif ctx.possible_key() != None :
-            nArgs = self.newArgs()
-            ret = (ctx.possible_key().accept(self))
-            k = ret.value
-            m.key = k
             success = True
         elif (ctx.M() != None) :
             if (not args.rootDefined) : 
@@ -709,7 +705,12 @@ class customVisitor(test_1Visitor):
                 m.matchType = m.MATCH_ALL
             logger.debug( "m cand in all members") 
             success = True
-        
+        if ctx.possible_num() != None : 
+            for i in ctx.possible_num() : 
+                retIndex = i.accept(self)
+                index.append(retIndex.value)
+                logger.debug("index : {}".format(index) )
+
         if ( not args.lValue): 
             if ( not args.rootDefined): 
                 ok , d = refList[0].getValue()
@@ -753,6 +754,7 @@ class customVisitor(test_1Visitor):
         else :
             logger.debug("refList : {}".format(refList) )
             if ((len(refList) == 0)): 
+                # Create a new entry in dictionary and set reference to this entry. 
                 logger.debug(" refList {}".format(refList ) )
                 d = {k : None}
                 r = dict_op.refManager()
@@ -760,6 +762,8 @@ class customVisitor(test_1Visitor):
                 refList.append(r)                
                 logger.debug("New reflist : {} , new ref : {} ".format(refList , r) )
             for refIndex in range(len(refList)) :  
+                # Get all references for each reference in the list (for previous level) 
+                # and replace the original references with new refs.
                 logger.debug("test")
                 m = dict_op.matchCriteria()
                 m.key = k
@@ -768,20 +772,30 @@ class customVisitor(test_1Visitor):
                 if ok :
                     newRef = dict_op.getRefs( d, m)
                 if (len(newRef)==0):
+                    # If there are no refs present, add new dictionary/ref.
                     ok , d_orig = refList[refIndex].getValue()
                     if ok : 
                         if ( isinstance(d_orig , dict) ):
                             d_orig[k] = None
                         else : 
+                            logger.debug("Replacing value : {} with a new dictionary.".format(d_orig) )
                             refList[refIndex].updateValue({k:None})
+                    else : 
+                        logger.warning("Unable to get reference , ref : {}  ".format(refList[refIndex]) )
+                        self.markFailure()
                     logger.debug("new ref : {} , value : {}".format(refList[refIndex] , refList[refIndex].getValue()[1]) )
                     r = dict_op.refManager()
                     r.setRef(refList[refIndex].getValue()[1] , k)
+                    r.createAccessNestedLists(index)
                     refList.append(r)
+                else : 
+                    # What happens if there is some ref present? 
+                    pass
                 refList.pop(refIndex)
                 if (len(newRef) > 0 ):
                     logger.debug("test")
                     for eachRef in newRef : 
+                        eachRef.createAccessNestedLists(index)
                         refList.append(eachRef)
         if success :
             ret.retCode = ret.RETCODE_SUCCESS
@@ -982,6 +996,11 @@ class customVisitor(test_1Visitor):
         logger.debug("op : {}  a : {} ,  b : {} , c : {} ".format(op , a , b , c)   )
         ret.value = c
         return ret;
+
+    def markFailure(self):
+        self.gRet["success"] = False
+        logger.warning("Logging failure at : {}".format(sys._getframe(1).f_code.co_name))
+        return
 
     def newArgs(self):
         args = cArgs()

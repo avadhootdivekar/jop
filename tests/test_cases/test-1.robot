@@ -51,5 +51,8 @@ ListTest
     Run file and check output  ../inputs/test-list-4.jop   ../inputs/test-list-4.exp
     Run file and check output  ../inputs/test-list-5.jop   ../inputs/test-list-5.exp
     Run file and check output  ../inputs/test-list-6.jop   ../inputs/test-list-6.exp
+    Run file and check output  ../inputs/test-list-7.jop   ../inputs/test-list-7.exp
+    Run file and check output  ../inputs/test-list-8.jop   ../inputs/test-list-8.exp
+    Run file and check output  ../inputs/test-list-9.jop   ../inputs/test-list-9.exp
     
 

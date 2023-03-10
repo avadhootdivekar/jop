@@ -9,7 +9,7 @@ import string
 # pdb.set_trace()
 
 logFormat="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s"
-logging.basicConfig(format=logFormat ,  level=logging.DEBUG , filename="/var/log/dict_op.log")
+logging.basicConfig(format=logFormat ,  level=logging.DEBUG , filename="/var/log/dict_op.log" )
 log = logging.getLogger(__name__.split('.')[0])
 
 class Infix:
@@ -122,6 +122,42 @@ class refManager():
 		else : 
 			log.warning("Reference not valid. obj : [{}] , key : [{}] , index : [{}]".format(self.obj , self.key , self.index) )
 		return success , value
+	
+
+
+	def createAccessNestedLists(self , indexArr):
+		'''
+		Create or access the nested list element as specified by indexArr
+		e.g. indexArr = [2,4,5] will 
+			- create list [ None, None , [None , None , None , None , [None , None , None , None , None , *None* ]]]
+			- If all the list members at indices 2 , 4 and 5 are already present, it will return the value of that element. 
+			it is equivalent to access list[2][4][5]
+		'''
+		log.debug("indexArr : {}".format(indexArr) )
+		depth = len(indexArr)
+		if (isinstance(indexArr , list)):
+			for i in range(depth):
+				l = indexArr[i]
+				if (isinstance(l , int)) and (l >= 0):
+					ok , v = self.getValue()
+					if ok and (not isinstance(v , list)):
+						self.updateValue([])
+						ok , v = self.getValue()
+						log.debug("Created new dictionary at depth : {} , self : {} , v : {} ".format(i , self , v) )						
+						if not ok :
+							log.warning("Failed to get value of new entry.")
+					else : 
+						log.debug("ok : {} , v : {} ".format(ok , v) )
+					actLen = len(v)
+					log.debug("actLen : {} , l : {} ".format(actLen , l) )
+					if ((actLen <= l)):
+						for j in range(l-actLen+1):
+							v.append(None)
+					self.setRef(v , index=l)
+					log.debug("Updated ref to nested index {}".format(l) )
+		else : 
+			log.warning("Invalid params, indexArr : {}".format(indexArr) )
+		return
 
 class matchCriteria():
 

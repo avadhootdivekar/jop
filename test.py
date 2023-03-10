@@ -121,20 +121,29 @@ def test4() :
 	print("V4 : \n{}\n Depth : {}".format(v4 , v4.depth()) )
 	v4.getRandom(maxDepth=0, maxWidth=4 , maxStrLen=10 , maxNum=100000)
 	print("V4 : \n{}\nDepth : {}".format(v4, v4.depth()) )
-
 	return
-
-
 
 def test5():
 	test_1_visitor.run_1(ip_string="ret=50;")
 	return 
 
+def test6():
+	v1 = {"A" : None}
+	r = dict_op.refManager()
+	r.setRef(v1 , key = "A")
+	print("v1 : {}  , r : {}".format(v1 , r) )
+	r.createAccessNestedLists([3 , 5 , 2])
+	print("v1 : {}  , r : {}".format(v1 , r) )
+	r.updateValue({"alpha" : "beta"})
+	print("v1 : {}  , r : {}".format(v1 , r) )
+
+	return
+
+
 # op_check()
 # test2()
-
 # test3()
-
-test4()
-
+# test4()
 # test5()
+test6()
+

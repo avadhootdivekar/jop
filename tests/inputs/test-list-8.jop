@@ -1,0 +1,6 @@
+// This is sample code to check the list access operator ([]) assignment.
+
+ret."check-1"."check-2"[1] = 23;
+ret."check-1"."check-2"[3] = 40;
+ret."check-1"."check-2"[7] = 805;
+ret."check-1"."check-2"[2] = "alpha delta";	
