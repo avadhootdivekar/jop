@@ -140,10 +140,25 @@ def test6():
 	return
 
 
+def test7():
+	v1={"a1" : "v1" , "a2" : "v2" , "a3" : {"a4" : "v4" , "a5" : {"a6" : "v6" , "a2" : "v3.2"} , "a2" : "v2.2" }}
+	v2={"b1" : "vb1" , "b2" : "vb2" , "b3" : {"b4" : "vb4" , "b5" : {"b6" : "vb6"}} , "a3" : {"ab1" : "vab1"}}
+	v3={"b1" : "vb1" , "b2" : "vb2" , "b3" : {"b4" : "vb4" , "b5" : {"b6" : "vb6"}} , "a3" : {"a4" : "vab3"}}
+	j1 = dict_op.ji(v1)
+	j2 = dict_op.ji(v2)
+	j3 = dict_op.ji(v3)
+	print ("RES 1 : \nj1 : {} \nj2 : {} ".format(j1 , j2 ) )
+	j4 = j1.union(j2)
+	print ("RES 2 : \nj1 : {} \nj2 : {} \n j4 : {}\n".format(j1 , j2 , j4) )
+	j4 = j1.intersection(j2)
+	print ("RES 3 : \nj1 : {} \nj2 : {} \n j4 : {}\n".format(j1 , j2 , j4) )
+	j4 = j1.intersection(j3)
+	print ("RES 3 : \nj1 : {} \nj2 : {} \n j4 : {}\n".format(j1 , j2 , j4) )
+
 # op_check()
 # test2()
 # test3()
 # test4()
 # test5()
-test6()
+test7()
 

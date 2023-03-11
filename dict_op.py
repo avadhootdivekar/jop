@@ -289,11 +289,16 @@ class ji (dict ):
 		'''
 		c = ji(copy.deepcopy(self))
 		if isinstance(b , dict) or isinstance(b , ji) :
-			c.update(b)
+			logging.debug("Union")
+			c = recursiveUnion(self , b)
 		else:
 			logging.warning(" Unable to union with type [{}] operand b [{}] ".format(type(b) , b ) );
 		return c
-	
+
+	def intersection(self , b):
+		c = intersection(self , b)
+		return c
+
 	def filter(self , m = None ):
 		log.debug("Filtering for matchCriteria : {}".format(m) )
 		if ( m == None):
@@ -503,3 +508,50 @@ def getRefs(root:dict , m:matchCriteria):
 				for i in range(len(r)):
 					arr.append(r[i]) 
 	return arr
+
+
+
+
+def recursiveUnion(a , b):
+	c = {}
+	if ( (isinstance(a , dict) or (isinstance(a , ji)))  and 
+     		(isinstance(b , dict) or isinstance(b , ji) ) ):
+		a = copy.deepcopy(a)
+		b = copy.deepcopy(b)
+		keys_a = a.keys()
+		for k , v in b.items():
+			if not (k in keys_a):	
+				a[k] = b[k]
+			else : 
+				if ( (isinstance(a[k] , dict) or isinstance(a[k] , ji) ) and 
+					(isinstance(b[k] , dict) or isinstance(b[k] , ji) ) ) : 
+					a[k] = recursiveUnion(a[k] , b[k])
+	return a
+
+
+def intersection(a : dict , b : dict):
+	'''
+	Return the dictionary containing items present in both the dictionaries. 
+	Keys which match are retained. If values differ and values are dictionaries,  
+	intersection is applied again to both the values.
+	'''
+	c = None
+	if ( (isinstance(a , dict) or (isinstance(a , ji)))  and 
+     		(isinstance(b , dict) or isinstance(b , ji) ) ):
+		c = {}
+		a = copy.deepcopy(a)
+		b = copy.deepcopy(b)
+		keys_a = list(a.keys())
+		keys_b = list(b.keys())
+		for k in keys_a:
+			if not (k in keys_b):
+				a.__delitem__(k)
+			else : 
+				if ( (isinstance(a[k] , dict) or isinstance(a[k] , ji) ) and 
+					(isinstance(b[k] , dict) or isinstance(b[k] , ji) ) ) : 
+					a[k] = intersection(a[k] , b[k])
+
+	return	a
+
+
+
