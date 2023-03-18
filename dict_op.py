@@ -168,6 +168,7 @@ class matchCriteria():
 	refs 		= None
 	level       = 0
 	matchType	= None
+	complement	= False
 
 	MATCH_ALL							= "all"
 	MATCH_DEL_NON_MATCHING_LEVELS		= "del_nonmatch_level"
@@ -177,7 +178,8 @@ class matchCriteria():
 
 	def __str__(self):
 		d = {"key" : self.key , "keyRegex" : self.keyRegex , "value" : self.value ,
-       			"valueRegex" : self.valueRegex , "refs" : self.refs , "level" : self.level}
+       			"valueRegex" : self.valueRegex , "refs" : self.refs , "level" : self.level,
+				"complement" : self.complement }
 		return "{}".format(d)
 
 class response():
@@ -283,21 +285,30 @@ class ji (dict ):
 				logging.debug("Adding dictionary.\n")
 		return c
 	
-	def union(self , b):
+	def union(self , b , recursive : bool = True):
 		'''
 		Union of self and b
 		'''
 		c = ji(copy.deepcopy(self))
 		if isinstance(b , dict) or isinstance(b , ji) :
 			logging.debug("Union")
-			c = recursiveUnion(self , b)
+			c = union(self , b , recursive=recursive)
 		else:
 			logging.warning(" Unable to union with type [{}] operand b [{}] ".format(type(b) , b ) );
 		return c
 
-	def intersection(self , b):
-		c = intersection(self , b)
+	def intersection(self , b , recursive : bool = True):
+		c = intersection(self , b , recursive=recursive)
 		return c
+
+	def diff(self , b , recursive:bool = True):
+		'''
+		A.diff(B) returns the result of set operation (A - B). The keys present in B will be deleted from the A. 
+		If resursive == True, even common keys in B will be subtracted from keys in A at successive matching levels.
+		e.g. A."k1"."k2" is present and B."k1" is present but B."k1"."k2" is not present, 
+		then A."k1" will be kept but A."k1"."k2" will be deleted.  
+		'''		
+		return diff(self , b , recursive=recursive)
 
 	def filter(self , m = None ):
 		log.debug("Filtering for matchCriteria : {}".format(m) )
@@ -400,7 +411,7 @@ def getRandomTypeValue(complex=True , maxNum = 100 , maxStrLen = 100 , maxArrayL
 
 
 
-def filter( root = {} , m = None ):
+def filter( root = {} , m:matchCriteria = None ):
 	'''
 	Filter a dictionary (root) as per matchCriteria m. Delete all non matching elements.
 	Returns a list of references of type refManager
@@ -414,7 +425,7 @@ def filter( root = {} , m = None ):
 		log.warning("Both key and keyRegex specified. ")
 		return retDefault
 	if ( (m.value != None) and (m.valueRegex != None) ):
-		log.warning("Both key and keyRegex specified. ")
+		log.warning("Both value and valueRegex specified. ")
 		return retDefault
 	if (type(root) == dict ) or (type(root) == ji ) : 
 		for k , v  in list(root.items()):
@@ -438,11 +449,11 @@ def filter( root = {} , m = None ):
 					keyMatch = True
 				if (m.value != None) and (m.value == v ):
 					valueMatch = True				
-				if keyMatch or valueMatch:
+				if (keyMatch or valueMatch) != (m.complement):
 					ret = refManager()
 					ret.setRef(obj=root , key=k)
 					log.debug("Match found for key [{}]".format(k))
-				else :
+				else:
 					log.debug("No match, deleting key [{}] from root [{}]".format(k , root))
 					root.__delitem__(k) 
 			elif ( m.level > 0) : 
@@ -512,46 +523,67 @@ def getRefs(root:dict , m:matchCriteria):
 
 
 
-def recursiveUnion(a , b):
-	c = {}
+def union(a , b , recursive : bool = True ):
+	log.debug("a : {} , b : {} , recursive : {}".format(a , b , recursive) )
 	if ( (isinstance(a , dict) or (isinstance(a , ji)))  and 
      		(isinstance(b , dict) or isinstance(b , ji) ) ):
 		a = copy.deepcopy(a)
-		b = copy.deepcopy(b)
 		keys_a = a.keys()
 		for k , v in b.items():
+			log.debug("k : {} ".format(k) )
 			if not (k in keys_a):	
 				a[k] = b[k]
 			else : 
 				if ( (isinstance(a[k] , dict) or isinstance(a[k] , ji) ) and 
 					(isinstance(b[k] , dict) or isinstance(b[k] , ji) ) ) : 
-					a[k] = recursiveUnion(a[k] , b[k])
+					a[k] = union(a[k] , b[k])
 	return a
 
 
-def intersection(a : dict , b : dict):
+def intersection(a : dict , b : dict , recursive=True):
 	'''
 	Return the dictionary containing items present in both the dictionaries. 
 	Keys which match are retained. If values differ and values are dictionaries,  
 	intersection is applied again to both the values.
 	'''
-	c = None
+	log.debug("a : {} , b : {} , recursive : {}".format(a , b , recursive) )
 	if ( (isinstance(a , dict) or (isinstance(a , ji)))  and 
      		(isinstance(b , dict) or isinstance(b , ji) ) ):
-		c = {}
 		a = copy.deepcopy(a)
-		b = copy.deepcopy(b)
 		keys_a = list(a.keys())
 		keys_b = list(b.keys())
 		for k in keys_a:
+			log.debug("k : {} ".format(k) )
 			if not (k in keys_b):
 				a.__delitem__(k)
-			else : 
+			elif (recursive) : 
 				if ( (isinstance(a[k] , dict) or isinstance(a[k] , ji) ) and 
 					(isinstance(b[k] , dict) or isinstance(b[k] , ji) ) ) : 
 					a[k] = intersection(a[k] , b[k])
+			# else :   	 Do nothing , a[k] = a[k]
 
+	log.debug("returning a : {}".format(a) )
 	return	a
+
+def diff (a:dict , b:dict , recursive:bool = True):
+	log.debug("a : {} , b : {} , recursive : {}".format(a , b , recursive) )
+	if ( (isinstance(a , dict) or (isinstance(a , ji)))  and 
+     		(isinstance(b , dict) or isinstance(b , ji) ) ):
+		a = copy.deepcopy(a)
+		keys_a = list(a.keys())
+		keys_b = list(b.keys())
+		for k in keys_a:
+			log.debug("k : {} ".format(k) )
+			if (k in keys_b):
+				log.debug("deleting k : {} ".format(k) )
+				a.__delitem__(k)
+			# else : Do nothing a[k] = a[k]
+			# No recursion consideration here. If any common element, that will be deleted
+			# Thus , recursion will not happen.
+	# else : Do nothing, operation not possible
+	log.debug("returning c : {}".format(a) )
+	return a
+
 
 
 
