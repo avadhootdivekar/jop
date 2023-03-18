@@ -60,3 +60,4 @@ SetTest
     Run file and check output  ../inputs/set-ops/set-1-union.jop   ../inputs/set-ops/set-1-union.exp
     Run file and check output  ../inputs/set-ops/set-2-intersection.jop   ../inputs/set-ops/set-2-intersection.exp
     Run file and check output  ../inputs/set-ops/set-3-diff.jop   ../inputs/set-ops/set-3-diff.exp
+    Run file and check output  ../inputs/set-ops/set-4-intersection.jop   ../inputs/set-ops/set-4-intersection.exp
