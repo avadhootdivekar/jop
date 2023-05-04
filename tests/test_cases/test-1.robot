@@ -61,3 +61,10 @@ SetTest
     Run file and check output  ../inputs/set-ops/set-2-intersection.jop   ../inputs/set-ops/set-2-intersection.exp
     Run file and check output  ../inputs/set-ops/set-3-diff.jop   ../inputs/set-ops/set-3-diff.exp
     Run file and check output  ../inputs/set-ops/set-4-intersection.jop   ../inputs/set-ops/set-4-intersection.exp
+
+
+MemberWiseOpTest
+    [Tags]    New
+    Run file and check output  ../inputs/member-wise-ops/memb-1-add.jop   ../inputs/member-wise-ops/memb-1-add.exp
+    Run file and check output  ../inputs/member-wise-ops/memb-2-add.jop   ../inputs/member-wise-ops/memb-2-add.exp
+

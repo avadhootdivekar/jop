@@ -1,0 +1,1 @@
+{'success': True, 'value': {'alpha': 101, 'beta': 202, 'gamma': 303, 'delta': 4, 'pie': {'One': {1: 'one', 2: 'two', 3: 'three'}, 'Two': [34, 35, 36, 37]}}, 'version': '1.0'}

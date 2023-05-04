@@ -540,6 +540,7 @@ class customVisitor(test_1Visitor):
         if args.rootDefined : 
             logger.debug("Root defined multiple times.")
             self.gRet["success"] = False
+            self.markFailure()
         ret.rootDefined = True
         ret.retCode     = ret.RETCODE_SUCCESS
         return ret
@@ -688,6 +689,7 @@ class customVisitor(test_1Visitor):
         if ( not ( isinstance(refList, list) ) ): 
             logger.warning("reflist is of type : [{}]".format(type(refList)) )
             self.gRet["success"] = False
+            self.markFailure()
             
         if ctx.possible_key() != None:
             nArgs = self.newArgs()
@@ -704,6 +706,7 @@ class customVisitor(test_1Visitor):
             if (not args.rootDefined) : 
                 logger.warning("Select all without root.")
                 self.gRet["success"] = False
+                self.markFailure()
             else : 
                 m.matchType = m.MATCH_ALL
             logger.debug( "m cand in all members") 
@@ -737,6 +740,7 @@ class customVisitor(test_1Visitor):
                 else : 
                     logger.warning("ok : {} , d : {} ".format(ok , d) )
                     self.gRet["success"] = False
+                    self.markFailure()
             else : 
                 if (m.matchType != m.MATCH_ALL) :
                     # If matchAll , no need to do anything, 
@@ -893,7 +897,7 @@ class customVisitor(test_1Visitor):
                 logger.warning("Expression without an operator.")
                 pass
         else:
-            logger.warning( "expression without operator. i.e. simple uid.")
+            logger.warning( "expression without operator. i.e. simple uid. : {}".format(ctx.getText() ) )
             if ctx.expr_1() != None :
                 nArgs = self.newArgs()
                 ret = ctx.expr_1().accept(self)
