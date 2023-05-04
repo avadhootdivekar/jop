@@ -30,6 +30,11 @@ test :
 	cd tests/test_cases; \
 		robot test-1.robot ;
 
+test_new :
+	@echo "${SEP} test"
+	cd tests/test_cases; \
+		robot --include New  test-1.robot;
+
 build_container :
 # Only this recipe runs outside of the container. Rest all will run inside the container. 
 # Build  the  container 

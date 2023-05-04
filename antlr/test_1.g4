@@ -86,7 +86,7 @@ expr_1				: ( member | fcall | curly | match_b | uid);
 
 b_op				: (dict_b_op | math_b_op);
 math_b_op			: ( (SEP P) | (SEP N) | (SEP M) | (SEP D) );
-dict_b_op			: (P | N ) ;
+dict_b_op			: (P | N | EXP) ;
 math_u_op			: (P P | N N ) ;
 getParent			: SEP '<' ;
 pair				: uid ':'  (uid | curly | list_ ) ;
@@ -124,9 +124,18 @@ CC					: '}' ;
 OS					: '[' ;
 CS					: ']' ;
 SEMIC				: ';' ;
+EXP					: '^' ;
+DLR					: '$' ;
+PERC				: '%' ;
+AMP					: '&' ; 
+OR					: '\\';
+EXCL				: '!' ;
+AsT					: '@' ;
 BT					: 'true'	;			// Boolean true
 BF					: 'false'	;			// Boolean false
 INT					: [0-9]+ ;
+INT_KEY				: '_key' ;
+INT_VALUE			: '_val' ;
 OTHERS				: [ \n\t\r]+ -> skip;
 FLT					: INT '.' INT ;
 JOP					: 'jop';
@@ -135,7 +144,6 @@ STR					: '"' (ESC | . )*? '"' ;
 STR_SQ				: '\'' (ESC | . )*? '\'' ; 
 ID					: LETTERS  (LETTERS | INT)* ;
 // ERR_ID				: INT (LETTERS | INT)* ;
-EXP					: '^'; 
 // STRING			: ".*?(?!\\\")."     <-- This is regex for string for reference
 //QUOTE				: '"';
 MCMT				: '/*' .*? '*/' ;

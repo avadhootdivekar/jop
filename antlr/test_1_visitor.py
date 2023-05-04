@@ -324,6 +324,9 @@ class customVisitor(test_1Visitor):
         elif ctx.N() != None:
             ret.value = "-"
             ret.retCode = ret.RETCODE_SUCCESS
+        elif ctx.EXP() != None:
+            ret.value = "^"
+            ret.retCode = ret.RETCODE_SUCCESS
         return ret
 
     def  visitB_op(self, ctx: test_1Parser.B_opContext  ):
@@ -537,6 +540,7 @@ class customVisitor(test_1Visitor):
         if args.rootDefined : 
             logger.debug("Root defined multiple times.")
             self.gRet["success"] = False
+            self.markFailure()
         ret.rootDefined = True
         ret.retCode     = ret.RETCODE_SUCCESS
         return ret
@@ -685,6 +689,7 @@ class customVisitor(test_1Visitor):
         if ( not ( isinstance(refList, list) ) ): 
             logger.warning("reflist is of type : [{}]".format(type(refList)) )
             self.gRet["success"] = False
+            self.markFailure()
             
         if ctx.possible_key() != None:
             nArgs = self.newArgs()
@@ -701,6 +706,7 @@ class customVisitor(test_1Visitor):
             if (not args.rootDefined) : 
                 logger.warning("Select all without root.")
                 self.gRet["success"] = False
+                self.markFailure()
             else : 
                 m.matchType = m.MATCH_ALL
             logger.debug( "m cand in all members") 
@@ -734,6 +740,7 @@ class customVisitor(test_1Visitor):
                 else : 
                     logger.warning("ok : {} , d : {} ".format(ok , d) )
                     self.gRet["success"] = False
+                    self.markFailure()
             else : 
                 if (m.matchType != m.MATCH_ALL) :
                     # If matchAll , no need to do anything, 
@@ -873,10 +880,24 @@ class customVisitor(test_1Visitor):
             elif (isStr(retV1.value) and isStr(retV2.value)) :
                 if (retOp.value == "+" or retOp.value == ".+"):
                     ret.value = retV1.value + retV2.value
+            elif ( (ctx.b_op() != None ) and (ctx.b_op().dict_b_op()!= None) and 
+                (isinstance(retV1.value , dict) and isinstance(retV2.value , dict)) ) : 
+                a = dict_op.ji(retV1.value) 
+                b = dict_op.ji(retV2.value)
+                if  retOp.value == "^" : 
+                    # Intersection.
+                    ret.value = a.intersection(b , recursive=True)
+                elif (retOp.value == "+"):
+                    ret.value = a.union(b , recursive=True)
+                elif (retOp.value == "-"):
+                    ret.value = a.diff(b , recursive=True)
+                else : 
+                    logger.warning("Unexpected dictionary operator. ")
             else:
+                logger.warning("Expression without an operator.")
                 pass
         else:
-            logger.warning( "expression without operator. i.e. simple uid.")
+            logger.warning( "expression without operator. i.e. simple uid. : {}".format(ctx.getText() ) )
             if ctx.expr_1() != None :
                 nArgs = self.newArgs()
                 ret = ctx.expr_1().accept(self)
