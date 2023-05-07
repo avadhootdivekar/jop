@@ -1,0 +1,15 @@
+var1 = 0;
+var2 = 35;
+var3 = "some text";
+var4 = " some more text .... ";
+var5 = 3407;
+var6 = 2403;
+
+d1 = {
+	"v1" : var1 , "v2" : var2 , "v3" : var3 , "v4" : 560 , "v5" : 340
+};
+
+// Divide by zero gives exception which is not handled. Thus ret will be None. 
+d2 = { "v1" : 10 , "v2" : 70 , "v3" : 5 , "v4" : 2 , "v5" : 1};
+
+ret = d1.\/d2;

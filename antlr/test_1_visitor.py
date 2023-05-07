@@ -12,6 +12,7 @@ import numbers
 import config
 import inspect 
 import ctypes
+import traceback
 
 
 # sys.path.append("/home/container/mounted/jop_repo/")
@@ -359,6 +360,13 @@ class customVisitor(test_1Visitor):
         elif ctx.D() != None:
             ret.value = "./"
             ret.retCode = ret.RETCODE_SUCCESS
+        elif ctx.AMP() != None:
+            ret.value = ".&"
+            ret.retCode = ret.RETCODE_SUCCESS
+        elif ctx.OR() != None:
+            ret.value = ".|"
+            ret.retCode = ret.RETCODE_SUCCESS
+        
         if ret.value =="" :
             logger.warning( "Unexpected binary operator. ")
         return ret
@@ -545,11 +553,31 @@ class customVisitor(test_1Visitor):
         ret.retCode     = ret.RETCODE_SUCCESS
         return ret
 
+    def format_exception(self, e):
+        exception_list = traceback.format_stack()
+        exception_list = exception_list[:-2]
+        exception_list.extend(traceback.format_tb(sys.exc_info()[2]))
+        exception_list.extend(traceback.format_exception_only(sys.exc_info()[0], sys.exc_info()[1]))
+
+        exception_str = "Traceback (most recent call last):\n"
+        exception_str += "".join(exception_list)
+        # Removing the last \n
+        exception_str = exception_str[:-1]
+
+        return exception_str
+
     def visitCode(self, ctx: test_1Parser.CodeContext):
-        self.commonVisitor(ctx , "Code")
-        a =  super().visitCode(ctx)
-        if "ret" in gVarMap :
-            self.gRet["value"] = gVarMap["ret"]         # Assign return value
+        a=None
+        try: 
+            self.commonVisitor(ctx , "Code")
+            a =  super().visitCode(ctx)
+            if "ret" in gVarMap :
+                self.gRet["value"] = gVarMap["ret"]         # Assign return value
+        except Exception as e : 
+            self.gRet["success"] = False
+            logger.error("Got exception as : {} ".format(e) )
+            tb = self.format_exception(e) 
+            logger.error("Traceback : {}".format(tb) )
         return a
     def visitMember(self, ctx: test_1Parser.MemberContext ):
         '''
@@ -857,7 +885,15 @@ class customVisitor(test_1Visitor):
                 elif retOp.value == "./" :
                     a = dict_op.ji(retV1.value) 
                     b = dict_op.ji(retV2.value) 
-                    ret.value = a - b
+                    ret.value = a / b
+                elif retOp.value == ".&" :
+                    a = dict_op.ji(retV1.value) 
+                    b = dict_op.ji(retV2.value) 
+                    ret.value = a & b
+                elif retOp.value == ".|" :
+                    a = dict_op.ji(retV1.value) 
+                    b = dict_op.ji(retV2.value) 
+                    ret.value = a | b
                 elif retOp.value == "+" :
                     a = dict_op.ji(retV1.value) 
                     b = dict_op.ji(retV2.value) 

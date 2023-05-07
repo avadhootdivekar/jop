@@ -1,0 +1,1 @@
+{'success': True, 'value': {'alpha': 0, 'beta': 68.0, 'gamma': 300, 'iota': 'i', 'nu': 'n', 'mu': 'm', 'theta': {24: ['A', 'B', 'C', 'D'], 44: {'ka': 1, 'kha': 2, 'ga': 3, 'gha': 4}}}, 'version': '1.0'}

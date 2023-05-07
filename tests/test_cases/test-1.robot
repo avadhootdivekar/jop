@@ -67,4 +67,11 @@ MemberWiseOpTest
     [Tags]    New
     Run file and check output  ../inputs/member-wise-ops/memb-1-add.jop   ../inputs/member-wise-ops/memb-1-add.exp
     Run file and check output  ../inputs/member-wise-ops/memb-2-add.jop   ../inputs/member-wise-ops/memb-2-add.exp
+    Run file and check output  ../inputs/member-wise-ops/memb-3-mul.jop   ../inputs/member-wise-ops/memb-3-mul.exp
+    Run file and check output  ../inputs/member-wise-ops/memb-4-mul.jop   ../inputs/member-wise-ops/memb-4-mul.exp
+    Run file and check output  ../inputs/member-wise-ops/memb-5-div.jop   ../inputs/member-wise-ops/memb-5-div.exp
+    Run file and check output  ../inputs/member-wise-ops/memb-6-div.jop   ../inputs/member-wise-ops/memb-6-div.exp
+    Run file and check output  ../inputs/member-wise-ops/memb-7-sub.jop   ../inputs/member-wise-ops/memb-7-sub.exp
+    Run file and check output  ../inputs/member-wise-ops/memb-8-and.jop   ../inputs/member-wise-ops/memb-8-and.exp
+    Run file and check output  ../inputs/member-wise-ops/memb-9-or.jop   ../inputs/member-wise-ops/memb-9-or.exp
 

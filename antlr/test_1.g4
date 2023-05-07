@@ -85,7 +85,7 @@ expr				: ( (expr_1)  b_op expr)
 expr_1				: ( member | fcall | curly | match_b | uid);
 
 b_op				: (dict_b_op | math_b_op);
-math_b_op			: ( (SEP P) | (SEP N) | (SEP M) | (SEP D) );
+math_b_op			: ( (SEP P) | (SEP N) | (SEP M) | (SEP BACKSLASH D) | (SEP AMP) | (SEP OR) );
 dict_b_op			: (P | N | EXP) ;
 math_u_op			: (P P | N N ) ;
 getParent			: SEP '<' ;
@@ -128,7 +128,8 @@ EXP					: '^' ;
 DLR					: '$' ;
 PERC				: '%' ;
 AMP					: '&' ; 
-OR					: '\\';
+OR					: '|';
+BACKSLASH			: '\\';
 EXCL				: '!' ;
 AsT					: '@' ;
 BT					: 'true'	;			// Boolean true

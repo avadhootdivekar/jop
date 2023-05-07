@@ -1,0 +1,30 @@
+X1 = {
+	"alpha" : 1,	"beta" : 2,	 "gamma" : 3,	"delta" : 4,
+	"pie" : {
+		"One" : {
+			1 : "one",			2 : "two",			3 : "three"
+		},
+		"Two" : [34,35,36,37]
+	}
+};
+
+X2 = {
+	"alpha" : 100,	"beta" : 200,	"gamma" : 300,	"iota" : i,	"nu" : n,	"mu" : m,
+	"theta" : {
+		24 : ["A","B","C","D"],
+		44 : {"ka" : 1,"kha" : 2 ,"ga" : 3,"gha" : 4}
+	} , 
+	"pie" : {
+		"Two" : [34 , 34 , 34 , 64]
+	}
+};
+
+// Note the difference between numbers as strings and numbers
+X3 = { "10" : "alpha" , "11" : "beta" , 12 : "gamma" , "13" : "delta" , "14" : 14 , "15" : 15,
+		"A" : [101 , 102 , 103 , 104 , 105],
+		"B" : 999,
+		"C" : 34100
+	};
+
+ret = X1 .| X2;
+

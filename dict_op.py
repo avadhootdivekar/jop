@@ -220,18 +220,6 @@ class ji (dict ):
 		else :
 			return False
 
-	def __add__(self , b ):
-		c = ji(copy.deepcopy(self))
-		for k,v in c.items():
-			log.debug(" keys : {}".format(k))
-			if  isinstance(v , numbers.Number) or (isinstance(v , str)):
-				if k in b.keys():
-					c[k] += b[k]
-			elif isinstance(v , dict) and ( ( k in b.keys() ) and isinstance(b[k] , dict)):
-				c[k] = ji(c[k]) + ji(b[k])
-				log.debug("Adding dictionary.\n")
-		return c 
-
 	def getRandomKey(self):
 		'''
 		Returns a random key at the top level.
@@ -259,6 +247,25 @@ class ji (dict ):
 		return ji(self[k]).getRandomPair(depth -1)
 		
 
+	def __add__(self , b ):
+		c = ji(copy.deepcopy(self))
+		for k,v in c.items():
+			log.debug(" keys : {}".format(k))
+			if  isinstance(v , numbers.Number) or (isinstance(v , str)):
+				if k in b.keys():
+					c[k] += b[k]
+			elif isinstance(v , dict) and ( ( k in b.keys() ) and isinstance(b[k] , dict)):
+				c[k] = ji(c[k]) + ji(b[k])
+				log.debug("Adding dictionary.\n")
+			elif isinstance(v , list) and  ( ( k in b.keys() ) and isinstance(b[k] , list)):
+				maxLen = len(v)
+				for i in range(len(b[k])) : 
+					if i > maxLen:
+						break
+					c[k][i] = c[k][i] + b[k][i]
+		log.debug("Final retvalue : [[{}]]".format(c) )
+		return c 
+
 	def __sub__(self , b ):
 		c = ji(copy.deepcopy(self))
 		for k,v in c.items():
@@ -268,10 +275,74 @@ class ji (dict ):
 					c[k] -= b[k]
 			elif isinstance(v , dict) and ( ( k in b.keys() ) and isinstance(b[k] , dict)):
 				c[k] = ji(c[k]) - ji(b[k])
-				logging.debug("Subtracting dictionary.\n")
+				log.debug("Subtracting dictionary.\n")
+			elif isinstance(v , list) and  ( ( k in b.keys() ) and isinstance(b[k] , list)):
+				maxLen = len(v)
+				for i in range(len(b[k])) : 
+					if i > maxLen:
+						break
+					c[k][i] = c[k][i] - b[k][i]
 			else : 
 				log.warning("Subtraction not supported for type [{}] .".format(type(v)))
+		log.debug("Final retvalue : [[{}]]".format(c) )
 		return c 
+
+	def __or__(self , b):
+		c = ji(copy.deepcopy(self))
+		for k,v in c.items():
+			log.debug(" keys : {}".format(k))
+			if  isinstance(v , numbers.Number) :
+				if k in b.keys():
+					c[k] |= b[k]
+			elif isinstance(v , dict)  and ( ( k in b.keys() ) and isinstance(b[k] , dict)):
+				c[k] = ji(c[k]) | ji(b[k])
+				log.debug("Operation OR (|) on dictionaries [[ {} ]]  , [[ {} ]] .\n".format(ji(c[k]) , ji(b[k])) )
+			elif isinstance(v , list) and  ( ( k in b.keys() ) and isinstance(b[k] , list)):
+				maxLen = len(v)
+				for i in range(len(b[k])) : 
+					if i > maxLen:
+						break
+					c[k][i] = c[k][i] | b[k][i]
+		log.debug("Final retvalue : [[{}]]".format(c) )
+		return c
+
+	def __and__(self, b):
+		c = ji(copy.deepcopy(self))
+		for k,v in c.items():
+			log.debug(" keys : {}".format(k))
+			if  isinstance(v , numbers.Number) :
+				if k in b.keys():
+					c[k] &= b[k]
+			elif isinstance(v , dict)  and ( ( k in b.keys() ) and isinstance(b[k] , dict)):
+				c[k] = ji(c[k]) & ji(b[k])
+				log.debug("Operation And on dictionaries. [[ {} ]]  and [[ {} ]] \n".format(ji(c[k]) , ji(b[k]) ) )
+			elif isinstance(v , list) and  ( ( k in b.keys() ) and isinstance(b[k] , list)):
+				maxLen = len(v)
+				for i in range(len(b[k])) : 
+					if i > maxLen:
+						break
+					c[k][i] = c[k][i] & b[k][i]
+		log.debug("Final retvalue : [[{}]]".format(c) )
+		return c
+
+	def __truediv__(self, b ):
+		c = ji(copy.deepcopy(self))
+		for k,v in c.items():
+			log.debug(" keys : {}".format(k))
+			if  isinstance(v , numbers.Number) :
+				if k in b.keys():
+					c[k] /= b[k]
+			elif isinstance(v , dict)  and ( ( k in b.keys() ) and isinstance(b[k] , dict)):
+				c[k] = ji(c[k]) / ji(b[k])
+				log.debug("Operation Divide (/) on dictionaries [[{}]] , [[{}]].\n".format(ji(c[k]) , ji(b[k])))
+			elif isinstance(v , list) and  ( ( k in b.keys() ) and isinstance(b[k] , list)):
+				maxLen = len(v)
+				for i in range(len(b[k])) : 
+					if i > maxLen:
+						break
+					c[k][i] = c[k][i] / b[k][i]
+		log.debug("Final retvalue : [[{}]]".format(c) )
+		return c
 
 	def __mul__(self , b ):
 		c = ji(copy.deepcopy(self))
@@ -282,7 +353,14 @@ class ji (dict ):
 					c[k] *= b[k]
 			elif isinstance(v , dict)  and ( ( k in b.keys() ) and isinstance(b[k] , dict)):
 				c[k] = ji(c[k]) * ji(b[k])
-				logging.debug("Adding dictionary.\n")
+				log.debug("Operation Multiply (*) on dictionaries : [[{}]] , [[{}]].\n".format( ji(c[k])  , ji(b[k]) ) )
+			elif isinstance(v , list) and  ( ( k in b.keys() ) and isinstance(b[k] , list)):
+				maxLen = len(v)
+				for i in range(len(b[k])) : 
+					if i > maxLen:
+						break
+					c[k][i] = c[k][i] * b[k][i]
+		log.debug("Final retvalue : [[{}]]".format(c) )
 		return c
 	
 	def union(self , b , recursive : bool = True):
@@ -291,10 +369,10 @@ class ji (dict ):
 		'''
 		c = ji(copy.deepcopy(self))
 		if isinstance(b , dict) or isinstance(b , ji) :
-			logging.debug("Union")
+			log.debug("Union")
 			c = union(self , b , recursive=recursive)
 		else:
-			logging.warning(" Unable to union with type [{}] operand b [{}] ".format(type(b) , b ) );
+			log.warning(" Unable to union with type [{}] operand b [{}] ".format(type(b) , b ) );
 		return c
 
 	def intersection(self , b , recursive : bool = True):
