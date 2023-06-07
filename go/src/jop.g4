@@ -4,10 +4,13 @@ grammar jop;
 /*
  * Parser Rules
  */
-
-code	: CMT*EOF ;
+all     : code* EOF;
+code	: (CMT|DIGITS) ;
 
 /*
  * Lexer Rules
  */
-CMT 	: '//' ;
+DIGITS  			: [0-9]+;
+CMT 				: '//' ;
+OTHERS				: [ \n\t\r]+ -> skip;
+ANY     			: .+?;

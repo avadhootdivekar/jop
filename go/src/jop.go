@@ -9,22 +9,42 @@ import (
 )
 
 
+type jopListener struct{
+	*parser.BasejopListener
+}
+
+
+type MyVisitor struct {
+	*parser.BasejopVisitor 
+}
+
 func helloJop(){
 	fmt.Printf("Hello JOP. \n")
 }
 
-
-func ProcInputStream(s string)(c.JI){
-	ret := c.JI{}
-	istream := antlr.NewInputStream(s)
-	lexer := parser.NewjopLexer(istream)
-	fmt.Printf("Lexer : %v " , lexer)
-	return ret
+func Process(s string)(){
+	lexer := ProcInputStream(s)
+	parser := ProcTokenStream(lexer)
+	fmt.Printf("Parser : %v " , parser)
 }
 
-func ProcTokenStream()(c.JI){
-	ret := c.JI{}
-	return ret
+func ProcInputStream(s string)(lexer antlr.Lexer){
+	istream := antlr.NewInputStream(s)
+	lexer = parser.NewjopLexer(istream)
+	fmt.Printf("Lexer : %v " , lexer)
+	return lexer
+}
+
+func ProcTokenStream(lexer antlr.Lexer)(err error){
+	tokens := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+	p := parser.NewjopParser(tokens)
+	tree := p.Code()
+	t , _ := tree.(*parser.CodeContext)
+	v := MyVisitor{}
+	fmt.Printf("Created visitor.\n")
+	antlr.ParseTreeWalkerDefault.Walk(&jopListener{} , tree)
+	v.Visit(t)
+	return nil
 }
 
 func VisitTree()(c.JI){
@@ -35,6 +55,15 @@ func VisitTree()(c.JI){
 
 
 
+func (v *MyVisitor) VisitCode(ctx *parser.CodeContext) interface{} {
+	fmt.Printf("\nThis is overloaded function.\n")
+	return v.VisitChildren(ctx)
+}
+
+func (v *MyVisitor) Visit(ctx *parser.CodeContext) interface{} {
+	fmt.Printf("\nThis is overloaded function.\n")
+	return nil
+}
 
 
 
