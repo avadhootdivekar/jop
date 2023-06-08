@@ -10,6 +10,8 @@ const (
 	JT_STR 		= 2
 	JT_LIST 	= 3
 	JT_DICT 	= 4
+	LOGFILE 	= "zap.config"
+	ERR_GENERIC 	= "Generic error"
 )
 
 

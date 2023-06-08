@@ -7,7 +7,7 @@ import (
 
 var s1 = `
 5 + 4 
-// This is a comment
+//This is a comment
 `
 
 func Test_1(*testing.T)(){

@@ -5,7 +5,7 @@ grammar jop;
  * Parser Rules
  */
 all     : code* EOF;
-code	: (CMT|DIGITS) ;
+code	: (CMT|DIGITS|ANY) ;
 
 /*
  * Lexer Rules

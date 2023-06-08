@@ -58,7 +58,8 @@ build_shell_go:
 build_go:
 	@echo "Building go"
 	cd go/src/;															\
-			java -cp ../../artifacts/antlr-4.13.0-complete.jar org.antlr.v4.Tool -Dlanguage=Go  -o gen/  -visitor jop.g4; 
+			java -cp ../../artifacts/antlr-4.13.0-complete.jar org.antlr.v4.Tool -Dlanguage=Go  -o gen/  -visitor jop.g4; 		\
+			go build;
 
 test_go:
 	@echo "Testing go"
