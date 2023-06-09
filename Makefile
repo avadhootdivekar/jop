@@ -1,9 +1,12 @@
 
 export SEP:=\n====================================================================================================================================\n
+export PROJECT_ROOT:=$(shell pwd)
 export JOP_VER:=1.01
 export WORKSPACE_DIR:=/home/jop_workspace
 export ROBOT_OPTIONS= --outputdir ${WORKSPACE_DIR}/output/test_results 
-
+export BUILD_VER:=1.01
+export GO_WORKSPACE_DIR:=/usr/src/app
+export WORKSPACE_DIR_HOST:=${PROJECT_ROOT}
 
 all : clean build test
 	@echo "${SEP} all"
@@ -45,6 +48,20 @@ get_build_shell:
 	docker run  -v`pwd`:/home/jop_workspace/ --network=host -w /home/jop_workspace/ -it jop_builder:${JOP_VER} "/bin/bash"
 
 
+build_shell_go:
+	@echo "Building Go build shell"
+	cd go;																\
+			docker build ./ -t jop_go:${BUILD_VER};						\
+			docker-compose up -d ;										\
+			docker exec -it go_dev-env_1 bash ; 
 
+build_go:
+	@echo "Building go"
+	cd go/src/;															\
+			java -cp ../../artifacts/antlr-4.13.0-complete.jar org.antlr.v4.Tool -Dlanguage=Go  -o gen/  -visitor jop.g4; 		\
+			go build;
 
-
+test_go:
+	@echo "Testing go"
+	cd go/src/;															\
+			go test
