@@ -7,6 +7,8 @@ import (
 
 var s1 = `
 a = 5  ;
+d = 5385093485 ;
+f = true ;
 b = "This is a string."    ;
 // This is a comment
 {

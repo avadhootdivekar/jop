@@ -4,15 +4,18 @@ grammar jop;
 /*
  * Parser Rules
  */
-all     : code* EOF;
-code	: (lines|block)+ ;
-lines   : ( assign | CMT )+ ;
-block   : ( OC lines + CC )  ;
-assign  : ID EQ rvalue SEMIC;
-rvalue 	: uid ;
-uid 	: ( num | ID | BT | BF | string ) ;
-string  : STR+;
-num     : ( INT | FLT ) ;
+all     			: code* EOF;
+code				: (lines|block)+ ;
+lines   			: ( assign | CMT )+ ;
+block   			: ( OC lines + CC )  ;
+assign  			: ID EQ rvalue SEMIC;
+rvalue 				: (expr_1) ;
+
+expr_1				: ( math_b_op | uid);
+math_b_op			: ( (SEP P) | (SEP N) | (SEP M) | (SEP BACKSLASH D) | (SEP AMP) | (SEP OR) );
+uid 				: ( num | ID | BT | BF | string ) ;
+string  			: STR+;
+num     			: ( INT | FLT ) ;
 
 /*
  * Lexer Rules

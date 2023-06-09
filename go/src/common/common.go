@@ -30,6 +30,7 @@ type Status struct {
 	Err   error
 }
 
+type Num int
 type NAMESPACE map[string]*JI
 type NSPACE_COLLECTION map[string]NAMESPACE
 
@@ -41,12 +42,73 @@ func (this *JI) Add(B *JI) (C *JI) {
 	switch this.Type {
 	case JT_NUM:
 		if B.Type == JT_NUM {
-			val := new(int)
+			val := new(Num)
 			C.Type = JT_NUM
 			C.Ptr = val
+			a, ok := this.Ptr.(Num)
+			if !ok {
+				panic("Incorrect type.")
+			}
+			b, ok := B.Ptr.(Num)
+			*val = a + b
 		} else {
 			panic("Mismatched types")
 		}
+		break
+	case JT_STR:
+		if B.Type == JT_STR {
+			val := ""
+			C.Type = JT_STR
+			C.Ptr = &val
+			a, ok := this.Ptr.(string)
+			if !ok {
+				panic("Incorrect type.")
+			}
+			b, ok := B.Ptr.(string)
+			val = a + b
+		} else {
+			panic("Mismatched types")
+		}
+		break
+	case JT_LIST:
+		if B.Type == JT_LIST {
+			var val []JI
+			C.Type = JT_LIST
+			C.Ptr = &val
+			a, ok := this.Ptr.([]JI)
+			if !ok {
+				panic("Incorrect type.")
+			}
+			b, ok := B.Ptr.([]JI)
+			// Append. For elementwise op , check function : ?
+			val = append(val, a...)
+			val = append(val, b...)
+		} else {
+			panic("Mismatched types")
+		}
+		break
+	case JT_DICT:
+		if B.Type == JT_DICT {
+			val := make(map[JI]JI)
+			C.Type = JT_DICT
+			C.Ptr = &val
+			a, ok := this.Ptr.(map[JI]JI)
+			if !ok {
+				panic("Incorrect type.")
+			}
+			b, ok := B.Ptr.(map[JI]JI)
+			// Append. For elementwise op , check function : ?
+			val = a
+			for k, v := range b {
+				val[k] = v
+			}
+		} else {
+			panic("Mismatched types")
+		}
+		break
+	default:
+		panic(fmt.Sprintf("Unsupported type : %v ", this.Type))
+		break
 
 	}
 	return C
@@ -93,7 +155,7 @@ func NewNamespace() (out *NAMESPACE) {
 func (this *JI) Text() (s string) {
 	var t string
 	var val string
-	s = fmt.Sprintf("Type : %v , ptr : %v ", this.Type, this.Ptr)
+	// s = fmt.Sprintf("Type : %v , ptr : %v ", this.Type, this.Ptr)
 	switch this.Type {
 	case JT_DICT:
 		t = "JT_DICT"
@@ -105,7 +167,7 @@ func (this *JI) Text() (s string) {
 		break
 	case JT_NUM:
 		t = "JT_NUM"
-		v, ok := this.Ptr.(int)
+		v, ok := this.Ptr.(Num)
 		if !ok {
 			return "Invalid num"
 		}
@@ -129,7 +191,7 @@ func (this *JI) Text() (s string) {
 		break
 
 	}
-	s = fmt.Sprintf("Type : %v , val : %v ", t, val)
+	s = fmt.Sprintf("[Type : %v , val : %v]", t, val)
 	return s
 }
 
@@ -139,7 +201,7 @@ func (this *NAMESPACE) Text() (s string) {
 	m = (*map[string]*JI)(this)
 	for k, v := range *m {
 		i++
-		s += fmt.Sprintf("[key : %v , val : %v]  ", k, v)
+		s += fmt.Sprintf("[key : %v , val : %v, ptr : %v ]  ", k, v.Text(), v)
 	}
 	s += fmt.Sprintf(" Count : %v ", i)
 	return s
@@ -152,7 +214,7 @@ func (this *NSPACE_COLLECTION) Text() (s string) {
 	m = (*map[string]NAMESPACE)(this)
 	for k, v := range *m {
 		i++
-		s += fmt.Sprintf("[key : %v , val : %v]  ", k, v)
+		s += fmt.Sprintf("[key : %v  , val : %v, ptr : %v ]  ", k, v.Text(), v)
 	}
 	s += fmt.Sprintf(" Count : %v ", i)
 	return s
