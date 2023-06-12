@@ -2,16 +2,19 @@ package common
 
 import (
 	"fmt"
+	"reflect"
 )
 
 const (
 	// JT ==> JOP Type
 	JT_INVALID  = -1
-	JT_NUM      = 1
-	JT_STR      = 2
-	JT_LIST     = 3
-	JT_DICT     = 4
-	JT_FUNC     = 5
+	JT_INT      = 1
+	JT_FLT      = 2
+	JT_STR      = 3
+	JT_LIST     = 4
+	JT_DICT     = 5
+	JT_FUNC     = 6
+	JT_BOOL     = 7
 	LOGFILE     = "zap.conf"
 	ERR_GENERIC = "Generic error"
 	NS_GLOBAL   = "global"
@@ -30,7 +33,8 @@ type Status struct {
 	Err   error
 }
 
-type Num int
+type JI_INT int
+type JI_FLOAT float64
 type NAMESPACE map[string]*JI
 type NSPACE_COLLECTION map[string]NAMESPACE
 
@@ -40,16 +44,52 @@ func Sample() {
 
 func (this *JI) Add(B *JI) (C *JI) {
 	switch this.Type {
-	case JT_NUM:
-		if B.Type == JT_NUM {
-			val := new(Num)
-			C.Type = JT_NUM
+	case JT_INT:
+		if B.Type == JT_FLT {
+			val := new(JI_FLOAT)
+			C.Type = JT_FLT
 			C.Ptr = val
-			a, ok := this.Ptr.(Num)
+			a, ok := this.Ptr.(JI_INT)
 			if !ok {
 				panic("Incorrect type.")
 			}
-			b, ok := B.Ptr.(Num)
+			b, ok := B.Ptr.(JI_FLOAT)
+			*val = JI_FLOAT(a) + b
+		} else if B.Type == JT_INT {
+			val := new(JI_INT)
+			C.Type = JT_INT
+			C.Ptr = val
+			a, ok := this.Ptr.(JI_INT)
+			if !ok {
+				panic("Incorrect type.")
+			}
+			b, ok := B.Ptr.(JI_INT)
+			*val = a + b
+
+		} else {
+			panic("Mismatched types")
+		}
+		break
+	case JT_FLT:
+		if B.Type == JT_INT {
+			val := new(JI_FLOAT)
+			C.Type = JT_FLT
+			C.Ptr = val
+			a, ok := this.Ptr.(JI_FLOAT)
+			if !ok {
+				panic("Incorrect type.")
+			}
+			b, ok := B.Ptr.(JI_INT)
+			*val = a + JI_FLOAT(b)
+		} else if B.Type == JT_FLT {
+			val := new(JI_FLOAT)
+			C.Type = JT_FLT
+			C.Ptr = val
+			a, ok := this.Ptr.(JI_FLOAT)
+			if !ok {
+				panic("Incorrect type.")
+			}
+			b, ok := B.Ptr.(JI_FLOAT)
 			*val = a + b
 		} else {
 			panic("Mismatched types")
@@ -159,35 +199,43 @@ func (this *JI) Text() (s string) {
 	switch this.Type {
 	case JT_DICT:
 		t = "JT_DICT"
-		v, ok := this.Ptr.(map[string]*JI)
+		v, ok := this.Ptr.(*map[string]*JI)
 		if !ok {
-			return "Invalid dict"
+			return fmt.Sprintf("Invalid dict , type : [%v] ", reflect.TypeOf(this.Ptr))
 		}
-		val = fmt.Sprintf("%v", v)
+		val = fmt.Sprintf("%v", *v)
 		break
-	case JT_NUM:
-		t = "JT_NUM"
-		v, ok := this.Ptr.(Num)
+	case JT_INT:
+		t = "JT_INT"
+		v, ok := this.Ptr.(*JI_INT)
 		if !ok {
-			return "Invalid num"
+			return fmt.Sprintf("Invalid int , type : [%v] ", reflect.TypeOf(this.Ptr))
 		}
-		val = fmt.Sprintf("%v", v)
+		val = fmt.Sprintf("%v", *v)
+		break
+	case JT_FLT:
+		t = "JT_FLT"
+		v, ok := this.Ptr.(*JI_FLOAT)
+		if !ok {
+			return fmt.Sprintf("Invalid float , type : [%v] ", reflect.TypeOf(this.Ptr))
+		}
+		val = fmt.Sprintf("%v", *v)
 		break
 	case JT_STR:
 		t = "JT_STR"
-		v, ok := this.Ptr.(string)
+		v, ok := this.Ptr.(*string)
 		if !ok {
-			return "Invalid str"
+			return fmt.Sprintf("Invalid string , type : [%v] ", reflect.TypeOf(this.Ptr))
 		}
-		val = fmt.Sprintf("%v", v)
+		val = fmt.Sprintf("%v", *v)
 		break
 	case JT_LIST:
 		t = "JT_LIST"
-		v, ok := this.Ptr.([]*JI)
+		v, ok := this.Ptr.(*[]*JI)
 		if !ok {
-			return "Invalid list"
+			return fmt.Sprintf("Invalid list , type : [%v] ", reflect.TypeOf(this.Ptr))
 		}
-		val = fmt.Sprintf("%v", v)
+		val = fmt.Sprintf("%v", *v)
 		break
 
 	}

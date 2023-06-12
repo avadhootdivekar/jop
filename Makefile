@@ -7,13 +7,17 @@ export ROBOT_OPTIONS= --outputdir ${WORKSPACE_DIR}/output/test_results
 export BUILD_VER:=1.01
 export GO_WORKSPACE_DIR:=/usr/src/app
 export WORKSPACE_DIR_HOST:=${PROJECT_ROOT}
+export GO_LOG_FILE:=jop.log
 
 all : clean build test
 	@echo "${SEP} all"
 
 clean:
 	@echo "${SEP} Clean"
-
+	cd go/src; 																\
+			rm gen/*;														\
+			echo "" > ${GO_LOG_FILE} ;				
+	rm output/test_results/*
 
 build : 
 	@echo "${SEP} Build"
