@@ -7,18 +7,20 @@ import (
 
 const (
 	// JT ==> JOP Type
-	JT_INVALID  = -1
-	JT_INT      = 1
-	JT_FLT      = 2
-	JT_STR      = 3
-	JT_LIST     = 4
-	JT_DICT     = 5
-	JT_FUNC     = 6
-	JT_BOOL     = 7
-	LOGFILE     = "zap.conf"
-	ERR_GENERIC = "Generic error"
-	NS_GLOBAL   = "global"
-	NS_LOCAL    = "local"
+	JT_INVALID              = -1
+	JT_INT                  = 1
+	JT_FLT                  = 2
+	JT_STR                  = 3
+	JT_LIST                 = 4
+	JT_DICT                 = 5
+	JT_FUNC                 = 6
+	JT_BOOL                 = 7
+	LOGFILE                 = "zap.conf"
+	NS_GLOBAL               = "global"
+	NS_LOCAL                = "local"
+	ERR_GENERIC             = "Generic error"
+	ERR_INVALID_PARAMS      = "Invalid params"
+	ERR_INSUFFICIENT_MEMORY = "Insufficient memory"
 )
 
 type Intf interface{}
@@ -26,6 +28,16 @@ type Intf interface{}
 type JI struct {
 	Ptr  Intf
 	Type int
+}
+
+type ARG struct {
+	ValueRef *JI
+	GetRef   bool // Indicate that caller expects reference to be returned - NOT value.
+}
+
+type RET struct {
+	ValueRef *JI
+	Err      error
 }
 
 type Status struct {
