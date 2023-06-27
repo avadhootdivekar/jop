@@ -105,14 +105,14 @@ func (v *MyVisitor) VisitCode(ctx *parser.CodeContext) interface{} {
 	return nil
 }
 
-func (v *MyVisitor) VisitString(ctx *parser.StringsContext) c.Intf {
+func (v *MyVisitor) VisitString(ctx *parser.StringsContext) c.RET {
 	log.Debugf("Entry , ctx : %v ", ctx)
 	s := ctx.STR().GetText()
 	log.Debugf("String : %v ", s)
 	return nil
 }
 
-func (v *MyVisitor) VisitLines(ctx *parser.LinesContext) c.Intf {
+func (v *MyVisitor) VisitLines(ctx *parser.LinesContext) c.RET {
 	log.Debugf("Entry")
 	l := ctx.AllLine()
 	for i := 0; i < len(l); i++ {
@@ -126,7 +126,7 @@ func (v *MyVisitor) VisitLines(ctx *parser.LinesContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitLine(ctx *parser.LineContext) c.Intf {
+func (v *MyVisitor) VisitLine(ctx *parser.LineContext) c.RET {
 	log.Debugf("Entry")
 	cl := ctx.AllCode_line()
 	for i := 0; i < len(cl); i++ {
@@ -140,7 +140,7 @@ func (v *MyVisitor) VisitLine(ctx *parser.LineContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitCode_line(ctx *parser.Code_lineContext) c.Intf {
+func (v *MyVisitor) VisitCode_line(ctx *parser.Code_lineContext) c.RET {
 	log.Debugf("Entry")
 	s := ctx.GetText()
 	a, ok := ctx.Assign().(*parser.AssignContext)
@@ -159,7 +159,7 @@ func (v *MyVisitor) VisitCode_line(ctx *parser.Code_lineContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitAssign(ctx *parser.AssignContext) c.Intf {
+func (v *MyVisitor) VisitAssign(ctx *parser.AssignContext) c.RET {
 	log.Debugf("Entry")
 	s := ctx.GetText()
 	a, ok := ctx.Rvalue().(*parser.RvalueContext)
@@ -172,6 +172,7 @@ func (v *MyVisitor) VisitAssign(ctx *parser.AssignContext) c.Intf {
 			log.Warnf("Error")
 			return ret
 		}
+		log.Debugf("ret : %v , r1 : %v " , ret , r1)
 		value = ret.ValueRef
 	}
 
@@ -196,7 +197,7 @@ func (v *MyVisitor) VisitAssign(ctx *parser.AssignContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitRvalue(ctx *parser.RvalueContext) c.Intf {
+func (v *MyVisitor) VisitRvalue(ctx *parser.RvalueContext) c.RET {
 	log.Debugf("Entry")
 	s := ctx.GetText()
 	ret := new(c.RET)
@@ -216,10 +217,10 @@ func (v *MyVisitor) VisitRvalue(ctx *parser.RvalueContext) c.Intf {
 		ret, ok = r1.(*c.RET)
 		return ret
 	}
-	c, ok := ctx.Fcall().(*parser.FcallContext)
-	if (c != nil) && ok {
-		log.Debugf("Fcall : %v ", c.GetText())
-		r1 := v.VisitFcall(c)
+	c1, ok := ctx.Fcall().(*parser.FcallContext)
+	if (c1 != nil) && ok {
+		log.Debugf("Fcall : %v ", c1.GetText())
+		r1 := v.VisitFcall(c1)
 		ret, ok = r1.(*c.RET)
 		return ret
 	}
@@ -233,7 +234,7 @@ func (v *MyVisitor) VisitRvalue(ctx *parser.RvalueContext) c.Intf {
 	e, ok := ctx.Curly().(*parser.CurlyContext)
 	if (e != nil) && ok {
 		log.Debugf("Curly : %v ", e.GetText())
-		r1 = v.VisitCurly(e)
+		r1 := v.VisitCurly(e)
 		ret, ok = r1.(*c.RET)
 		return ret
 	}
@@ -262,7 +263,7 @@ func (v *MyVisitor) VisitRvalue(ctx *parser.RvalueContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitMember(ctx *parser.MemberContext) c.Intf {
+func (v *MyVisitor) VisitMember(ctx *parser.MemberContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("string : [%v] ", s)
@@ -285,7 +286,7 @@ func (v *MyVisitor) VisitMember(ctx *parser.MemberContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitUid(ctx *parser.UidContext) c.Intf {
+func (v *MyVisitor) VisitUid(ctx *parser.UidContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("UID : [%v] ", s)
@@ -324,49 +325,49 @@ func (v *MyVisitor) VisitUid(ctx *parser.UidContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitFcall(ctx *parser.FcallContext) c.Intf {
+func (v *MyVisitor) VisitFcall(ctx *parser.FcallContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("fcall : [%v] ", s)
 	return nil
 }
 
-func (v *MyVisitor) VisitMatch_b(ctx *parser.Match_bContext) c.Intf {
+func (v *MyVisitor) VisitMatch_b(ctx *parser.Match_bContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("Match_b : [%v] ", s)
 	return nil
 }
 
-func (v *MyVisitor) VisitCurly(ctx *parser.CurlyContext) c.Intf {
+func (v *MyVisitor) VisitCurly(ctx *parser.CurlyContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("Curly : [%v] ", s)
 	return nil
 }
 
-func (v *MyVisitor) VisitList_(ctx *parser.List_Context) c.Intf {
+func (v *MyVisitor) VisitList_(ctx *parser.List_Context) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("List : [%v] ", s)
 	return nil
 }
 
-func (v *MyVisitor) VisitExpr(ctx *parser.ExprContext) c.Intf {
+func (v *MyVisitor) VisitExpr(ctx *parser.ExprContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("string : [%v] ", s)
 	return nil
 }
 
-func (v *MyVisitor) VisitJop_func(ctx *parser.Jop_funcContext) c.Intf {
+func (v *MyVisitor) VisitJop_func(ctx *parser.Jop_funcContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("string : [%v] ", s)
 	return nil
 }
 
-func (v *MyVisitor) VisitId_(ctx *parser.Id_Context, pArg *c.ARG) c.Intf {
+func (v *MyVisitor) VisitId_(ctx *parser.Id_Context, pArg *c.ARG) c.RET {
 	log.Debugf("Entry ")
 	ret := new(c.RET)
 	ret.Err = errors.New(c.ERR_GENERIC)
@@ -390,7 +391,7 @@ func (v *MyVisitor) VisitId_(ctx *parser.Id_Context, pArg *c.ARG) c.Intf {
 	return ret
 }
 
-func (v *MyVisitor) VisitMember_candidate(ctx *parser.Member_candidateContext) c.Intf {
+func (v *MyVisitor) VisitMember_candidate(ctx *parser.Member_candidateContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("string : [%v] ", s)
@@ -412,7 +413,7 @@ func (v *MyVisitor) VisitMember_candidate(ctx *parser.Member_candidateContext) c
 	return nil
 }
 
-func (v *MyVisitor) VisitPossible_key(ctx *parser.Possible_keyContext) c.Intf {
+func (v *MyVisitor) VisitPossible_key(ctx *parser.Possible_keyContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("string : [%v] ", s)
@@ -437,7 +438,7 @@ func (v *MyVisitor) VisitPossible_key(ctx *parser.Possible_keyContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitPossible_num(ctx *parser.Possible_numContext) c.Intf {
+func (v *MyVisitor) VisitPossible_num(ctx *parser.Possible_numContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("Possible num  : [%v] ", s)
@@ -470,7 +471,7 @@ func (v *MyVisitor) VisitPossible_num(ctx *parser.Possible_numContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitPossible_str(ctx *parser.Possible_strContext) c.Intf {
+func (v *MyVisitor) VisitPossible_str(ctx *parser.Possible_strContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("string : [%v] ", s)
@@ -503,21 +504,21 @@ func (v *MyVisitor) VisitPossible_str(ctx *parser.Possible_strContext) c.Intf {
 	return nil
 }
 
-func (v *MyVisitor) VisitPossible_bool(ctx *parser.Possible_boolContext) c.Intf {
+func (v *MyVisitor) VisitPossible_bool(ctx *parser.Possible_boolContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("possible bool : [%v] ", s)
 	return nil
 }
 
-func (v *MyVisitor) VisitStrings(ctx *parser.StringsContext) c.Intf {
+func (v *MyVisitor) VisitStrings(ctx *parser.StringsContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("string : [%v] ", s)
 	return nil
 }
 
-func (v *MyVisitor) VisitNum(ctx *parser.NumContext) c.Intf {
+func (v *MyVisitor) VisitNum(ctx *parser.NumContext) c.RET {
 	log.Debugf("Entry ")
 	ret := new(c.JI)
 	s := ctx.GetText()
@@ -555,7 +556,7 @@ func (v *MyVisitor) VisitNum(ctx *parser.NumContext) c.Intf {
 	return ret
 }
 
-func (v *MyVisitor) VisitBt(ctx *parser.BtContext, args c.ARG) c.Intf {
+func (v *MyVisitor) VisitBt(ctx *parser.BtContext, args c.ARG) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("BT : [%v] ", s)
@@ -567,7 +568,7 @@ func (v *MyVisitor) VisitBt(ctx *parser.BtContext, args c.ARG) c.Intf {
 	return ret
 }
 
-func (v *MyVisitor) VisitBf(ctx *parser.BfContext) c.Intf {
+func (v *MyVisitor) VisitBf(ctx *parser.BfContext) c.RET {
 	log.Debugf("Entry ")
 	s := ctx.GetText()
 	log.Debugf("BF : [%v] ", s)
@@ -583,7 +584,7 @@ func logErr(err error) {
 	log.Errorf("Error : %v ", err)
 }
 
-// func (v *MyVisitor) Visit__(ctx *parser.LinesContext)(c.Intf){
+// func (v *MyVisitor) Visit__(ctx *parser.LinesContext)(c.RET){
 // log.Debugf("Entry ")
 // s := ctx.GetText()
 // log.Debugf("string : [%v] " , s)

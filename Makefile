@@ -59,13 +59,17 @@ build_shell_go:
 			docker-compose up -d ;										\
 			docker exec -it go_dev-env_1 bash ; 
 
-build_go:
+build_go: mod_tidy
 	@echo "Building go"
 	cd go/src/;															\
 			java -cp ../../artifacts/antlr-4.13.0-complete.jar org.antlr.v4.Tool -Dlanguage=Go  -o gen/  -visitor jop.g4; 		\
 			go build;
 
-test_go:
+test_go: mod_tidy
 	@echo "Testing go"
 	cd go/src/;															\
 			go test
+
+mod_tidy:
+	cd go/src/;															\
+			go mod tidy;					
