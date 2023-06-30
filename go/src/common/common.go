@@ -255,6 +255,10 @@ func (this *JI) Text() (s string) {
 	return s
 }
 
+func (this *RET) Text()(s string){
+	return fmt.Sprintf("[err : %v , valueRef : %v ]" , this.Err , this.ValueRef.Text())
+}
+
 func (this *NAMESPACE) Text() (s string) {
 	i := 0
 	var m *map[string]*JI
