@@ -42,7 +42,9 @@ func Test_NewJI(t *testing.T){
 	log.Debugf("A : %v " , A)
 	A = c.NewJI([]c.Intf{"abcd" , 567 , true})
 	log.Debugf("A : %v " , A)
-	A = c.NewJI(map[c.Intf]c.Intf { 45 : 56})
+	A = c.NewJI(map[int]int { 45 : 56})
+	log.Debugf("A : %v " , A)
+	A = c.NewJI(map[c.Intf]c.Intf { 45 : 56 , "abcd":"efgh" , true:false})
 	log.Debugf("A : %v " , A)
 
 }
@@ -71,5 +73,89 @@ func Test_JiAdd(t *testing.T){
 	log.Debugf("A:%v " , A)
 	log.Debugf("B:%v " , B)
 	log.Debugf("C:%v " , C)
+}
+
+func Test_IsEqual(t *testing.T){
+	var A,B *c.JI
+	A = c.NewJI(3456)
+	B = c.NewJI(3456)
+	if A.IsEqualVal(B) {
+		log.Debugf("Int Values are equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
+	
+	A = c.NewJI(34.789)
+	B = c.NewJI(34.789)
+	if A.IsEqualVal(B) {
+		log.Debugf("Float Values are equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
+
+	A = c.NewJI("abcd")
+	B = c.NewJI("abcd")
+	if A.IsEqualVal(B) {
+		log.Debugf("String Values are equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
+
+	A = c.NewJI([]string {"abc" , "def" , "ghi"})
+	B = c.NewJI([]string {"abc" , "def" , "ghi"})
+	if A.IsEqualVal(B) {
+		log.Debugf("List Values are equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
+
+	A = c.NewJI(map [float64] string {4.5 :"xyz" , 145.467:"pqr"})
+	B = c.NewJI(map [float64] string {4.5 :"xyz" , 145.467:"pqr"})
+	if A.IsEqualVal(B) {
+		log.Debugf("Map Values are equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
+
+
+	A = c.NewJI(3456)
+	B = c.NewJI(-1234)
+	if !A.IsEqualVal(B) {
+		log.Debugf("Int Values are not equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
+	
+	A = c.NewJI(34.789)
+	B = c.NewJI(0)
+	if  ! A.IsEqualVal(B) {
+		log.Debugf("Float Values are not equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
+
+	A = c.NewJI("abcd")
+	B = c.NewJI("pqrs")
+	if ! A.IsEqualVal(B) {
+		log.Debugf("String Values are not equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
+
+	A = c.NewJI([]string {"abc" , "def" , "ghi"})
+	B = c.NewJI([]string {"abc" , "def" })
+	if ! A.IsEqualVal(B) {
+		log.Debugf("List Values are not equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
+
+	A = c.NewJI(map [float64] string {4.5 :"xyz" , 145.467:"pqr"})
+	B = c.NewJI(map [float64] string {4.5 :"xyz" , 13.098:"pqr"})
+	if  !A.IsEqualVal(B) {
+		log.Debugf("Map Values are not equal")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v " , A , B)
+	}
 
 }

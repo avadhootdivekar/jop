@@ -47,6 +47,7 @@ type Status struct {
 
 type JI_INT int
 type JI_FLOAT float64
+type JI_STR string
 type JI_LIST []*JI
 type JI_DICT map[JI]*JI
 type NAMESPACE map[string]*JI
@@ -58,6 +59,219 @@ type NSPACE_COLLECTION map[string]NAMESPACE
 
 func Sample() {
 	fmt.Printf("Sample function \n")
+}
+
+func (this *JI_DICT) GetKeys()(ls *[]JI){
+	v := new([]JI)
+	ls = v
+	if this == nil{
+		return ls
+	}
+	for k := range *this{
+		*ls = append(*ls, k)		
+	}
+	return ls
+}
+
+func (this *JI)In(ls *JI_LIST)(ret bool){
+	if this == nil || ls == nil{
+		return false
+	}
+	for i:=0 ; i<len(*ls) ; i++ {
+		if (this.IsEqualVal((*ls)[i]) ){
+			return true
+		}
+	}
+	return false
+}
+
+func (this *JI)InKeys(d *JI_DICT)(ret bool) {
+	if this ==nil || d == nil {
+		return false
+	}	
+	for k := range(*d) {
+		if this.IsEqualVal(&k){
+			return true
+		}
+	}
+	return false
+}
+
+func (this *JI_LIST) GetValueInstance(in *JI)(out *JI , found bool){
+	out = nil
+	if (this == nil) || (in==nil){
+		return out , false
+	}
+	for i:=0 ; i<len(*this) ; i++ {
+		if (in.IsEqualVal((*this)[i]) ){
+			out = (*this)[i]
+			return out, true
+		}
+	}
+	return out, false
+}
+
+func (this *JI_DICT)GetKeyInstance(in *JI)(out *JI , found bool){
+	out = nil
+	if (this ==nil) || (in == nil ){
+		return out, false
+	}	
+	for k := range(*this) {
+		if in.IsEqualVal(&k){
+			out = &k
+			return out, true
+		}
+	}
+	return out, false
+}
+
+func (this *JI_DICT)GetValueInstance(in *JI)(out *JI , found bool){
+	out = nil
+	if (this ==nil) || (in == nil ){
+		return out, false
+	}	
+	for _ , v := range(*this) {
+		if in.IsEqualVal(v){
+			out = v
+			return out, true
+		}
+	}
+	return out, false
+}
+
+func (this *JI)InValue(d *JI_DICT)(ret bool) {
+	if this ==nil || d == nil {
+		return false
+	}	
+	for _ , v := range(*d) {
+		if this.IsEqualVal(v){
+			return true
+		}
+	}
+	return false
+}
+
+func (this *JI)IsSimple()(ret bool){
+	if this == nil {
+		return false
+	}
+	switch this.Type{
+	case JT_BOOL:
+		return true
+	case JT_INT:
+		return true
+	case JT_FLT:
+		return true
+	case JT_STR:
+		return true
+	case JT_LIST:
+		return false
+	case JT_DICT:
+		return false
+	default:
+		panic(fmt.Sprintf("Invalid type : %v " , this.Type))
+	}
+}
+
+func (this *JI)IsSameType(B *JI)(ret bool){
+	if (this == nil ) || (B==nil) {
+		return false
+	}
+	if this.Type == B.Type {
+		return true
+	}
+	return false
+}
+
+
+func (this *JI)IsEqualVal(B *JI)(ret bool){
+	if (this == nil) && (B == nil) {
+		return true
+	}
+	if (this == nil) || (B == nil) {
+		return false
+	}
+	switch this.Type {
+	case JT_INT:
+		if this.IsSameType(B) {
+			if *(this.Ptr.(*JI_INT)) == *(B.Ptr.(*JI_INT)) {
+				return true
+			} else { 
+				return false
+			}
+		}else {
+			return false
+		}
+	case JT_FLT:
+		if this.IsSameType(B) {
+			if *(this.Ptr.(*JI_FLOAT)) == *(B.Ptr.(*JI_FLOAT)) {
+				return true
+			} else { 
+				return false
+			}
+		}else {
+			return false
+		}
+	case JT_STR:
+		if this.IsSameType(B) {
+			if *(this.Ptr.(*JI_STR)) == *(B.Ptr.(*JI_STR)) {
+				return true
+			} else { 
+				return false
+			}
+		}else {
+			return false
+		}
+	case JT_LIST:
+		if this.IsSameType(B) {
+			j1 := *( this.Ptr.(*JI_LIST) )
+			j2 := *( B.Ptr.(*JI_LIST) )
+			l1 := len(j1)
+			l2 := len(j2)
+			if l1 == l2 {
+				for i:=0 ; i<l1 ;  i++ {
+					if j1[i].IsEqualVal(j2[i]) {
+						continue
+					} else{
+						return false
+					}
+				}
+				return true
+			} else { 
+				return false
+			}
+		}else {
+			return false
+		}
+	case JT_DICT:
+		if this.IsSameType(B) {
+			d1 := *(this.Ptr.(*JI_DICT))
+			d2 := *(B.Ptr.(*JI_DICT))
+			if len(d1) == len(d2){
+				kl1 := d1.GetKeys()
+				for i:=0 ; i<len(*kl1) ; i++ {
+					if  ((*kl1)[i].InKeys(&d2) ) {
+						k2 , ok := d2.GetKeyInstance(&(*kl1)[i])
+						if ok &&( d1[(*kl1)[i]].IsEqualVal(d2[*k2])) {
+							continue
+						} else{
+							return false
+						}
+					} else {
+						fmt.Printf("k1:%v , v1:%v , v2:%v , d1:%v , d2:%v  \n" , &(*kl1)[i]  , d1[(*kl1)[i]] , d2[(*kl1)[i]] , d1 , d2)
+						return false
+					}
+				}
+				return true
+			} else {
+				return false
+			}
+		}else {
+			return false
+		}
+	default:
+		return false
+	}
 }
 
 func (this *JI) Add(B *JI) (C *JI) {
@@ -115,14 +329,14 @@ func (this *JI) Add(B *JI) (C *JI) {
 		break
 	case JT_STR:
 		if B.Type == JT_STR {
-			val := ""
+			val := JI_STR("")
 			C.Type = JT_STR
 			C.Ptr = &val
-			a, ok := this.Ptr.(*string)
+			a, ok := this.Ptr.(*JI_STR)
 			if !ok {
 				panic(fmt.Sprintf("Incorrect type %v , expected *string" , reflect.TypeOf(a) ))
 			}
-			b, ok := B.Ptr.(*string)
+			b, ok := B.Ptr.(*JI_STR)
 			if !ok {
 				panic(fmt.Sprintf("Incorrect type %v , expected *string" , reflect.TypeOf(a) ))
 			}
@@ -183,8 +397,19 @@ func NewJI(val Intf)(ret *JI){
 		val = v.Interface()
 	} else {
 		v = reflect.ValueOf(val)
+		switch reflect.TypeOf(val) {	
+		case reflect.TypeOf(5):
+			v = reflect.ValueOf(val.(int))
+			fmt.Printf("Type Identified as int \n")
+			break
+		default:
+			fmt.Printf("Failed to identify type \n")
+			break;
+
+		}
 	}
 
+	fmt.Printf("NewJI v:%v , type(v):%v , val:%v , type(val):%v \n" , v , v.Type() , val , reflect.TypeOf(val) )
 	switch v.Kind()  {
 	case reflect.Bool:
 		p := val.(bool)
@@ -207,7 +432,7 @@ func NewJI(val Intf)(ret *JI){
 		ret.Ptr = &p
 		break;
 	case reflect.String:
-		p := val.(string)
+		p := JI_STR( val.(string))
 		ret.Type = JT_STR
 		ret.Ptr = &p
 		break;
@@ -234,12 +459,12 @@ func NewJI(val Intf)(ret *JI){
 			a = *NewJI(k)
 			b = NewJI(v)
 			dictionary[a] = b
-			fmt.Printf("\nk:%v , v:%v , a:%v , b:%v , typek : %v , typev:%v   \n " , k, v, a ,b, k.Kind(),v.Kind() )
+			fmt.Printf("\nAdded key-value to map  k:%v , v:%v , a:%v , b:%v , typek : %v , typev:%v   \n" , k, v, a ,b, k.Kind(),v.Kind() )
 		} 
 		ret.Ptr = &dictionary
 		break
 	default:
-		fmt.Printf("Failed to generate the JI from %v of type %v" , val , reflect.TypeOf(val))
+		fmt.Printf("Failed to generate the JI from %v of type %v. v.Kind :%v \n" , val , reflect.TypeOf(val) , v.Kind() )
 		break
 	}	
 	return ret
@@ -318,7 +543,7 @@ func (this *JI) String() (s string) {
 		break
 	case JT_STR:
 		t = "JT_STR"
-		v, ok := this.Ptr.(*string)
+		v, ok := this.Ptr.(*JI_STR)
 		if !ok {
 			return fmt.Sprintf("Invalid string , type : [%v] ", reflect.TypeOf(this.Ptr))
 		}
