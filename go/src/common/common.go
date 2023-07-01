@@ -68,23 +68,22 @@ func (this *JI) Add(B *JI) (C *JI) {
 			val := new(JI_FLOAT)
 			C.Type = JT_FLT
 			C.Ptr = val
-			a, ok := this.Ptr.(JI_INT)
+			a, ok := this.Ptr.(*JI_INT)
 			if !ok {
-				panic("Incorrect type.")
+				panic(fmt.Sprintf("Incorrect type %v , expected JI_INT" , reflect.TypeOf(this.Ptr) ))
 			}
 			b, ok := B.Ptr.(JI_FLOAT)
-			*val = JI_FLOAT(a) + b
+			*val = JI_FLOAT(*a) + b
 		} else if B.Type == JT_INT {
 			val := new(JI_INT)
 			C.Type = JT_INT
 			C.Ptr = val
-			a, ok := this.Ptr.(JI_INT)
+			a, ok := this.Ptr.(*JI_INT)
 			if !ok {
-				panic("Incorrect type.")
+				panic(fmt.Sprintf("Incorrect type %v , expected JI_INT" , reflect.TypeOf(this.Ptr) ))
 			}
-			b, ok := B.Ptr.(JI_INT)
-			*val = a + b
-
+			b, ok := B.Ptr.(*JI_INT)
+			*val = *a + *b
 		} else {
 			panic("Mismatched types")
 		}
@@ -94,22 +93,22 @@ func (this *JI) Add(B *JI) (C *JI) {
 			val := new(JI_FLOAT)
 			C.Type = JT_FLT
 			C.Ptr = val
-			a, ok := this.Ptr.(JI_FLOAT)
+			a, ok := this.Ptr.(*JI_FLOAT)
 			if !ok {
-				panic("Incorrect type.")
+				panic(fmt.Sprintf("Incorrect type %v , expected *JI_FLOAT" , reflect.TypeOf(a) ))
 			}
-			b, ok := B.Ptr.(JI_INT)
-			*val = a + JI_FLOAT(b)
+			b, ok := B.Ptr.(*JI_INT)
+			*val = *a + JI_FLOAT(*b)
 		} else if B.Type == JT_FLT {
 			val := new(JI_FLOAT)
 			C.Type = JT_FLT
 			C.Ptr = val
-			a, ok := this.Ptr.(JI_FLOAT)
+			a, ok := this.Ptr.(*JI_FLOAT)
 			if !ok {
-				panic("Incorrect type.")
+				panic(fmt.Sprintf("Incorrect type %v , expected *JI_FLOAT" , reflect.TypeOf(this.Ptr) ))
 			}
-			b, ok := B.Ptr.(JI_FLOAT)
-			*val = a + b
+			b, ok := B.Ptr.(*JI_FLOAT)
+			*val = *a + *b
 		} else {
 			panic("Mismatched types")
 		}
@@ -119,15 +118,15 @@ func (this *JI) Add(B *JI) (C *JI) {
 			val := ""
 			C.Type = JT_STR
 			C.Ptr = &val
-			a, ok := this.Ptr.(string)
+			a, ok := this.Ptr.(*string)
 			if !ok {
-				panic("Incorrect type.")
+				panic(fmt.Sprintf("Incorrect type %v , expected *string" , reflect.TypeOf(a) ))
 			}
-			b, ok := B.Ptr.(string)
+			b, ok := B.Ptr.(*string)
 			if !ok {
-				panic("Incorrect type.")
+				panic(fmt.Sprintf("Incorrect type %v , expected *string" , reflect.TypeOf(a) ))
 			}
-			val = a + b
+			val = *a + *b
 		} else {
 			panic("Mismatched types")
 		}
@@ -137,14 +136,14 @@ func (this *JI) Add(B *JI) (C *JI) {
 			var val JI_LIST
 			C.Type = JT_LIST
 			C.Ptr = &val
-			a, ok := this.Ptr.(JI_LIST)
+			a, ok := this.Ptr.(*JI_LIST)
 			if !ok {
-				panic("Incorrect type.")
+				panic(fmt.Sprintf("Incorrect type %v , expected *JI_LIST" , reflect.TypeOf(a) ))
 			}
-			b, ok := B.Ptr.(JI_LIST)
+			b, ok := B.Ptr.(*JI_LIST)
 			// Append. For elementwise op , check function : ?
-			val = append(val, a...)
-			val = append(val, b...)
+			val = append(val, *a...)
+			val = append(val, *b...)
 		} else {
 			panic("Mismatched types")
 		}
@@ -154,14 +153,14 @@ func (this *JI) Add(B *JI) (C *JI) {
 			val := make(JI_DICT)
 			C.Type = JT_DICT
 			C.Ptr = &val
-			a, ok := this.Ptr.(JI_DICT)
+			a, ok := this.Ptr.(*JI_DICT)
 			if !ok {
 				panic("Incorrect type.")
 			}
-			b, ok := B.Ptr.(JI_DICT)
+			b, ok := B.Ptr.(*JI_DICT)
 			// Append. For elementwise op , check function : ?
-			val = a
-			for k, v := range b {
+			val = *a
+			for k, v := range *b {
 				val[k] = v
 			}
 		} else {
@@ -178,7 +177,14 @@ func (this *JI) Add(B *JI) (C *JI) {
 
 func NewJI(val Intf)(ret *JI){
 	ret = new(JI)
-	v := reflect.ValueOf(val)
+	var v reflect.Value
+	if reflect.TypeOf(val) == reflect.TypeOf(reflect.Value{}) {
+		v = val.(reflect.Value)
+		val = v.Interface()
+	} else {
+		v = reflect.ValueOf(val)
+	}
+
 	switch v.Kind()  {
 	case reflect.Bool:
 		p := val.(bool)
@@ -206,27 +212,29 @@ func NewJI(val Intf)(ret *JI){
 		ret.Ptr = &p
 		break;
 	case reflect.Slice:
-		p := val.([] Intf)
 		var a *JI
 		array := new(JI_LIST)
 		ret.Type = JT_LIST
-		for i:=0 ; i< len(p) ; i++ {
-			a = NewJI(p[i])
+		for i:=0 ; i< v.Len() ; i++ {
+			a = NewJI(v.Index(i).Interface())
 			*array = append(*array, a)
-			fmt.Printf("\npi : %v , a : %v \n" , p[i] , a.Text())
 		} 
 		ret.Ptr = array
 		break;
 	case reflect.Map:
-		p := val.(map [Intf] Intf)
+		iter := v.MapRange()
 		var a  JI
 		var b *JI
 		dictionary := make (JI_DICT)
 		ret.Type = JT_DICT
-		for k,v := range p {
+		
+		for iter.Next() {
+			k := reflect.Indirect(iter.Key())
+			v := reflect.Indirect(iter.Value())
 			a = *NewJI(k)
 			b = NewJI(v)
 			dictionary[a] = b
+			fmt.Printf("\nk:%v , v:%v , a:%v , b:%v , typek : %v , typev:%v   \n " , k, v, a ,b, k.Kind(),v.Kind() )
 		} 
 		ret.Ptr = &dictionary
 		break
@@ -275,20 +283,20 @@ func NewNamespace() (out *NAMESPACE) {
 	return out
 }
 
-func (this *JI) Text() (s string) {
+func (this *JI) String() (s string) {
 	var t string
 	val := ""
 	// s = fmt.Sprintf("Type : %v , ptr : %v ", this.Type, this.Ptr)
 	switch this.Type {
 	case JT_DICT:
 		t = "JT_DICT"
-		v, ok := this.Ptr.(*JI_DICT)
+		dictionary, ok := this.Ptr.(*JI_DICT)
 		if !ok {
 			return fmt.Sprintf("Invalid dict , type : [%v] ", reflect.TypeOf(this.Ptr))
 		}
 		val += "["
-		for k,v := range *v {
-			val += fmt.Sprintf("%v:%v ," , k.Text() , v.Text())
+		for k,v := range *dictionary {
+			val += fmt.Sprintf("%v:%v ," , &k , v)
 		}
 		val += "]"
 		break
@@ -324,7 +332,7 @@ func (this *JI) Text() (s string) {
 		}
 		val = "["
 		for i :=0 ; i<len(*v) ; i++ {
-			val += fmt.Sprintf("%v, " , (*v)[i].Text() )
+			val += fmt.Sprintf("%v, " , (*v)[i] )
 		}
 		val += "]"
 		break
@@ -335,7 +343,7 @@ func (this *JI) Text() (s string) {
 }
 
 func (this *RET) Text()(s string){
-	return fmt.Sprintf("[err : %v , valueRef : %v ]" , this.Err , this.ValueRef.Text())
+	return fmt.Sprintf("[err : %v , valueRef : %v ]" , this.Err , this.ValueRef)
 }
 
 func (this *NAMESPACE) Text() (s string) {
@@ -344,7 +352,7 @@ func (this *NAMESPACE) Text() (s string) {
 	m = (*map[string]*JI)(this)
 	for k, v := range *m {
 		i++
-		s += fmt.Sprintf("[key : %v , val : %v, ptr : %v ]  ", k, v.Text(), v)
+		s += fmt.Sprintf("[key : %v , val : %v, ptr : %v ]  ", k, v, v)
 	}
 	s += fmt.Sprintf(" Count : %v ", i)
 	return s
@@ -357,7 +365,7 @@ func (this *NSPACE_COLLECTION) Text() (s string) {
 	m = (*map[string]NAMESPACE)(this)
 	for k, v := range *m {
 		i++
-		s += fmt.Sprintf("[key : %v  , val : %v, ptr : %v ]  ", k, v.Text(), v)
+		s += fmt.Sprintf("[key : %v  , val : %v, ptr : %v ]  ", k, v, v)
 	}
 	s += fmt.Sprintf(" Count : %v ", i)
 	return s
