@@ -3,6 +3,7 @@ package jop
 import (
 	"fmt"
 	"testing"
+	c "jop/common"
 )
 
 var s1 = `
@@ -31,4 +32,17 @@ func Test_1(*testing.T) {
 
 	// s := "Hello there  // Hi		"
 	Process(s1)
+}
+
+
+func Test_NewJI(t *testing.T){
+	A := c.NewJI(5)
+	log.Debugf("A : %v " , A.Text())
+	A = c.NewJI("abra ca dabra")
+	log.Debugf("A : %v " , A.Text())
+	A = c.NewJI([]c.Intf{"abcd" , 567 , true})
+	log.Debugf("A : %v " , A.Text())
+	A = c.NewJI(map[c.Intf]c.Intf { 45 : 56})
+	log.Debugf("A : %v " , A.Text())
+
 }
