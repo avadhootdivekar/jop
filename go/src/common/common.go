@@ -45,6 +45,7 @@ type Status struct {
 	Err   error
 }
 
+type JI_BOOL bool
 type JI_INT int
 type JI_FLOAT float64
 type JI_STR string
@@ -258,7 +259,7 @@ func (this *JI)IsEqualVal(B *JI)(ret bool){
 							return false
 						}
 					} else {
-						fmt.Printf("k1:%v , v1:%v , v2:%v , d1:%v , d2:%v  \n" , &(*kl1)[i]  , d1[(*kl1)[i]] , d2[(*kl1)[i]] , d1 , d2)
+						// fmt.Printf("k1:%v , v1:%v , v2:%v , d1:%v , d2:%v  \n" , &(*kl1)[i]  , d1[(*kl1)[i]] , d2[(*kl1)[i]] , d1 , d2)
 						return false
 					}
 				}
@@ -395,18 +396,32 @@ func NewJI(val Intf)(ret *JI){
 	if reflect.TypeOf(val) == reflect.TypeOf(reflect.Value{}) {
 		v = val.(reflect.Value)
 		val = v.Interface()
-	} else {
-		v = reflect.ValueOf(val)
+		fmt.Printf("Its a reflect value\n")
+		fmt.Printf("v:%v , vKind:%v , valType:%v \n", v, v.Kind() , reflect.TypeOf(val))
 		switch reflect.TypeOf(val) {	
 		case reflect.TypeOf(5):
 			v = reflect.ValueOf(val.(int))
 			fmt.Printf("Type Identified as int \n")
+			break
+		case reflect.TypeOf(float64(5.4)):
+			v = reflect.ValueOf(val.(float64))
+			fmt.Printf("Type Identified as float64 \n")
+			break
+		case reflect.TypeOf("abcd"):
+			v = reflect.ValueOf(val.(string))
+			fmt.Printf("Type Identified as string \n")
+			break
+		case reflect.TypeOf(true):
+			v = reflect.ValueOf(val.(bool))
+			fmt.Printf("Type Identified as bool \n")
 			break
 		default:
 			fmt.Printf("Failed to identify type \n")
 			break;
 
 		}
+	} else {
+		v = reflect.ValueOf(val)
 	}
 
 	fmt.Printf("NewJI v:%v , type(v):%v , val:%v , type(val):%v \n" , v , v.Type() , val , reflect.TypeOf(val) )
@@ -415,6 +430,7 @@ func NewJI(val Intf)(ret *JI){
 		p := val.(bool)
 		ret.Type = JT_BOOL
 		ret.Ptr = &p
+		fmt.Printf("bool : p : %v \n" , p)
 		break;
 	case reflect.Int:
 		p := JI_INT( val.(int))
@@ -467,6 +483,7 @@ func NewJI(val Intf)(ret *JI){
 		fmt.Printf("Failed to generate the JI from %v of type %v. v.Kind :%v \n" , val , reflect.TypeOf(val) , v.Kind() )
 		break
 	}	
+	fmt.Printf("Generated JI : %v \n" , ret)
 	return ret
 }
 
@@ -524,6 +541,14 @@ func (this *JI) String() (s string) {
 			val += fmt.Sprintf("%v:%v ," , &k , v)
 		}
 		val += "]"
+		break
+	case JT_BOOL:
+		t = "JT_BOOL"
+		v, ok := this.Ptr.(*bool)
+		if !ok {
+			return fmt.Sprintf("Invalid int , type : [%v] ", reflect.TypeOf(this.Ptr))
+		}
+		val = fmt.Sprintf("%v", *v)
 		break
 	case JT_INT:
 		t = "JT_INT"
