@@ -159,3 +159,51 @@ func Test_IsEqual(t *testing.T){
 	}
 
 }
+
+func Test_JiSub(t *testing.T){
+	var A,B,C,D *c.JI
+	A = c.NewJI(3456)
+	B = c.NewJI(3456)
+	C = A.Sub(B)
+	D = c.NewJI(0)
+	if C.IsEqualVal(D) {
+		log.Debugf("Int Sub validated")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v , C:%v , D:%v " , A , B, C , D)
+	}
+
+
+	// If we add more decimal, subtraction gives little diffrent results being a float.
+	A = c.NewJI(12.34)
+	B = c.NewJI(10.0)
+	C = A.Sub(B)
+	D = c.NewJI(2.34)
+	if C.IsEqualVal(D) {
+		log.Debugf("Float Sub validated")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v , C:%v , D:%v " , A , B, C , D)
+	}
+	
+	A = c.NewJI([]int {2,3,4,5})
+	B = c.NewJI([]int {12,13,14,15})
+	C = A.Sub(B)
+	D = c.NewJI([]int {-10,-10,-10,-10})
+	if C.IsEqualVal(D) {
+		log.Debugf("List Sub validated")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v , C:%v , D:%v " , A , B, C , D)
+	}
+	
+	A = c.NewJI( map[float32]int {4.2:2, 4.3:3, 4.4:4, 4.5:5})
+	B = c.NewJI(map[float32]int {4.2:12, 4.3:13, 4.4:14, 4.5:15})
+	C = A.Sub(B)
+	D = c.NewJI(map[float32]int {4.2:-10, 4.3:-10, 4.4:-10, 4.5:-10})
+	if C.IsEqualVal(D) {
+		log.Debugf("List Sub validated")
+	} else {
+		t.Errorf("Failed, A:%v , B:%v , C:%v , D:%v " , A , B, C , D)
+	}
+
+
+}
+
