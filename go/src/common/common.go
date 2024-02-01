@@ -50,6 +50,10 @@ type JI_INT int
 type JI_FLOAT float64
 type JI_STR string
 type JI_LIST []*JI
+
+// Key is JI struct. If value of the structure is same, the key is same thus value / access would be same.
+// i.e. Access would still be valid if variable is copied.
+// Check example code : https://go.dev/play/p/-gmO-TchReT
 type JI_DICT map[JI]*JI
 type NAMESPACE map[string]*JI
 type NSPACE_COLLECTION map[string]NAMESPACE
@@ -59,7 +63,7 @@ type NSPACE_COLLECTION map[string]NAMESPACE
 //  However for sake of clarity, we will prefer new () 
 
 func Sample() {
-	fmt.Printf("Sample function \n")
+	log("Sample function \n")
 }
 
 func (this *JI_DICT) GetKeys()(ls *[]JI){
@@ -259,7 +263,7 @@ func (this *JI)IsEqualVal(B *JI)(ret bool){
 							return false
 						}
 					} else {
-						// fmt.Printf("k1:%v , v1:%v , v2:%v , d1:%v , d2:%v  \n" , &(*kl1)[i]  , d1[(*kl1)[i]] , d2[(*kl1)[i]] , d1 , d2)
+						// log("k1:%v , v1:%v , v2:%v , d1:%v , d2:%v  \n" , &(*kl1)[i]  , d1[(*kl1)[i]] , d2[(*kl1)[i]] , d1 , d2)
 						return false
 					}
 				}
@@ -383,11 +387,114 @@ func (this *JI) Add(B *JI) (C *JI) {
 		}
 		break
 	default:
-		panic(fmt.Sprintf("Unsupported type : %v ", this.Type))
+		panic(fmt.Sprintf("Unsupported type : %v \n", this.Type))
 		break
 
 	}
 	return C
+}
+
+func (this *JI)Sub(B *JI)(ret *JI){
+	// Non need for nil check as we SHOULD panic if its nil.
+	ret = new(JI)
+	switch this.Type{
+	case JT_BOOL:
+		if B.Type == JT_BOOL {
+			val := new(JI_BOOL)
+			ret.Ptr = val
+			ret.Type = JT_BOOL
+			log("What should be done for a-b in bool ? \n")
+		} else {
+			panic(fmt.Sprintf("Mismatched Types bool vs %v \n" , B.Type) )
+		}
+		break;
+	case JT_INT:
+		if (B.Type == JT_INT) {
+			val := new(JI_INT)
+			ret.Type = JT_INT
+			ret.Ptr = val
+			aVal := this.Ptr.(*JI_INT)
+			bVal := B.Ptr.(*JI_INT)
+			*val = *aVal - *bVal
+			return ret
+		}  else {
+			panic(fmt.Sprintf("Mismatched Types JT_INT vs %v \n" , B.Type) )
+		}
+		break
+	case JT_FLT:
+		if (B.Type == JT_FLT) {
+			val := new(JI_FLOAT)
+			ret.Type = JT_FLT
+			ret.Ptr = val
+			aVal := this.Ptr.(*JI_FLOAT)
+			bVal := B.Ptr.(*JI_FLOAT)
+			*val = *aVal - *bVal
+			return ret
+		}  else {
+			panic(fmt.Sprintf("Mismatched Types JT_INT vs %v \n" , B.Type) )
+		}
+		break
+	case JT_STR:
+		if (B.Type == JT_STR) {
+			val := new(JI_STR)
+			ret.Type = JT_STR
+			ret.Ptr = val
+			// aVal := this.Ptr.(*JI_STR)
+			// bVal := B.Ptr.(*JI_STR)
+			// *val = *aVal - *bVal
+			log("What  should be done for a-b in strings? \n")
+			return ret
+		}  else {
+			panic(fmt.Sprintf("Mismatched Types JT_INT vs %v \n" , B.Type) )
+		}
+		break
+	case JT_LIST:
+		if (B.Type == JT_LIST) {
+			val := new(JI_LIST)
+			var val2 *JI
+			ret.Type = JT_LIST
+			ret.Ptr = val
+			aVal := this.Ptr.(*JI_LIST)
+			bVal := B.Ptr.(*JI_LIST)
+			la := len(*aVal)
+			lb := len(*bVal)
+			if la != lb {
+				panic("Length mismatch\n")
+			}
+			for i:=0 ; i<la ; i++ {
+				val2 = (*aVal)[i].Sub((*bVal)[i])
+				*val = append(*val , val2)
+			}
+			return ret
+		}  else {
+			panic(fmt.Sprintf("Mismatched Types JT_INT vs %v \n" , B.Type) )
+		}
+		break
+	case JT_DICT:
+		if (B.Type == JT_DICT) {
+			val := new(JI_DICT)
+			ret.Type = JT_DICT
+			ret.Ptr = val
+			aDict := this.Ptr.(*JI_DICT)
+			bDict := B.Ptr.(*JI_DICT)
+			ka := aDict.GetKeys()
+			kb := bDict.GetKeys()
+			if len(*ka) == len(*kb) {
+				for i:=0 ; i< len(*ka) ; i++ {
+					k := (*ka)[i]
+					log("a:%v , b:%v , k:%v , a : %v , b : %v  " , (*aDict)[k] , (*bDict)[k] , k , *aDict , *bDict)
+					(*val)[k] = (*aDict)[k].Sub((*bDict)[k])
+				}
+			} 
+			return ret
+		}  else {
+			panic(fmt.Sprintf("Mismatched Types JT_INT vs %v \n" , B.Type) )
+		}
+		break
+	default:
+		panic(fmt.Sprintf("Unsupported Type : %v \n" , this.Type) )
+	}
+	return ret
 }
 
 func NewJI(val Intf)(ret *JI){
@@ -396,27 +503,27 @@ func NewJI(val Intf)(ret *JI){
 	if reflect.TypeOf(val) == reflect.TypeOf(reflect.Value{}) {
 		v = val.(reflect.Value)
 		val = v.Interface()
-		fmt.Printf("Its a reflect value\n")
-		fmt.Printf("v:%v , vKind:%v , valType:%v \n", v, v.Kind() , reflect.TypeOf(val))
+		log("Its a reflect value\n")
+		log("v:%v , vKind:%v , valType:%v \n", v, v.Kind() , reflect.TypeOf(val))
 		switch reflect.TypeOf(val) {	
 		case reflect.TypeOf(5):
 			v = reflect.ValueOf(val.(int))
-			fmt.Printf("Type Identified as int \n")
+			log("Type Identified as int \n")
 			break
 		case reflect.TypeOf(float64(5.4)):
 			v = reflect.ValueOf(val.(float64))
-			fmt.Printf("Type Identified as float64 \n")
+			log("Type Identified as float64 \n")
 			break
 		case reflect.TypeOf("abcd"):
 			v = reflect.ValueOf(val.(string))
-			fmt.Printf("Type Identified as string \n")
+			log("Type Identified as string \n")
 			break
 		case reflect.TypeOf(true):
 			v = reflect.ValueOf(val.(bool))
-			fmt.Printf("Type Identified as bool \n")
+			log("Type Identified as bool \n")
 			break
 		default:
-			fmt.Printf("Failed to identify type \n")
+			log("Failed to identify type \n")
 			break;
 
 		}
@@ -424,13 +531,13 @@ func NewJI(val Intf)(ret *JI){
 		v = reflect.ValueOf(val)
 	}
 
-	fmt.Printf("NewJI v:%v , type(v):%v , val:%v , type(val):%v \n" , v , v.Type() , val , reflect.TypeOf(val) )
+	log("NewJI v:%v , type(v):%v , val:%v , type(val):%v \n" , v , v.Type() , val , reflect.TypeOf(val) )
 	switch v.Kind()  {
 	case reflect.Bool:
 		p := val.(bool)
 		ret.Type = JT_BOOL
 		ret.Ptr = &p
-		fmt.Printf("bool : p : %v \n" , p)
+		log("bool : p : %v \n" , p)
 		break;
 	case reflect.Int:
 		p := JI_INT( val.(int))
@@ -475,15 +582,15 @@ func NewJI(val Intf)(ret *JI){
 			a = *NewJI(k)
 			b = NewJI(v)
 			dictionary[a] = b
-			fmt.Printf("\nAdded key-value to map  k:%v , v:%v , a:%v , b:%v , typek : %v , typev:%v   \n" , k, v, a ,b, k.Kind(),v.Kind() )
+			log("\nAdded key-value to map  k:%v , v:%v , a:%v , b:%v , typek : %v , typev:%v   \n" , k, v, a ,b, k.Kind(),v.Kind() )
 		} 
 		ret.Ptr = &dictionary
 		break
 	default:
-		fmt.Printf("Failed to generate the JI from %v of type %v. v.Kind :%v \n" , val , reflect.TypeOf(val) , v.Kind() )
+		log("Failed to generate the JI from %v of type %v. v.Kind :%v \n" , val , reflect.TypeOf(val) , v.Kind() )
 		break
 	}	
-	fmt.Printf("Generated JI : %v \n" , ret)
+	log("Generated JI : %v \n" , ret)
 	return ret
 }
 
@@ -622,3 +729,7 @@ func (this *NSPACE_COLLECTION) Text() (s string) {
 }
 
 
+func log(s string, args ...interface{}){
+	fmt.Printf(s, args...)
+	fmt.Printf("\n")
+}
