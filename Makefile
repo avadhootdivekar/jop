@@ -1,4 +1,4 @@
-
+SHELL:=/bin/bash 
 export SEP:=\n====================================================================================================================================\n
 export PROJECT_ROOT:=$(shell pwd)
 export JOP_VER:=1.01
@@ -9,15 +9,15 @@ export GO_WORKSPACE_DIR:=/usr/src/app
 export WORKSPACE_DIR_HOST:=${PROJECT_ROOT}
 export GO_LOG_FILE:=jop.log
 
-all : clean build test
+all : clean build test generate_bin
 	@echo "${SEP} all"
 
 clean:
 	@echo "${SEP} Clean"
 	cd go/src; 																\
-			rm gen/*;														\
+			- rm gen/*;														\
 			echo "" > ${GO_LOG_FILE} ;				
-	rm output/test_results/*
+	- rm output/test_results/*
 
 build : 
 	@echo "${SEP} Build"
@@ -73,3 +73,9 @@ test_go: mod_tidy
 mod_tidy:
 	cd go/src/;															\
 			go mod tidy;					
+
+generate_bin:
+	rm -f output/test_1_visitor.bin;
+	pushd antlr; python3 -m nuitka --standalone test_1_visitor.py; popd;
+	mv antlr/test_1_visitor.bin output/test_1_visitor.bin;
+
