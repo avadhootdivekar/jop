@@ -73,6 +73,8 @@ def run_1 ( ip_string=None , ip_file=None) :
         inp = antlr4.FileStream(ip_file)
     elif (ip_string != None) :
         inp = antlr4.InputStream(ip_string)
+    else :
+        return None
     errListener = customErrorListener()
     lexer = test_1Lexer(inp)
     lexer.removeErrorListeners()                # Do not write errors to the terminal
