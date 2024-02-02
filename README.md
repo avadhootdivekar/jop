@@ -30,7 +30,9 @@ A."class"."subject"[10] = 30        Set "class" as child of A , set "subject" ar
 #### Running from command line
 
 ```
-python3 jop_main.py -s <string> [OR] -f <input file>
+make build_container
+make get_build_shell
+<Container Prompt>$ python3 jop_main.py -s <string> [OR] -f <input file>
 ```
 
 #### Using in python 
