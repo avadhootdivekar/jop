@@ -1,6 +1,8 @@
 import os
 import sys
-sys.path.append("/home/container/mounted/jop_repo/antlr") 
+import argparse
+
+sys.path.append("./antlr") 
 import test_1_visitor
 
 OPS_SP_CHARS = ['.' , '+' , '-' , '*' , '/' , '\"' , '\\' , '<' , '>' , '=' , '{' , '}' , '(' , ')' , ' ' , '\n']
@@ -130,7 +132,28 @@ def getMember(parent , key):
         log(LOG_WARNING , "Incorrect member access. No member : " + str(key))
         return None
 
+def getArg(args, arg:str , default) :
+    val = getattr(args , arg)
+    if val == None:
+        val = default
+    return val
 
+def configParser():
+    parser = argparse.ArgumentParser(description="This is default arg parser")
+    parser.add_argument(
+        "-f", type=str, required=False, help="File for parsing jop expressions")
+    parser.add_argument(
+        "-s", type=str, required=False, help="String for jop expressions")
+    args = parser.parse_args()
+    return args
+
+def main():
+    args = configParser()
+    file=getArg(args , "f" , None)
+    string=getArg(args , "s" , None)
+    output = test_1_visitor.run_1(ip_string = string , ip_file=file)
+    print(output)
+    return
 
 if __name__ == "__main__"  :
-    f1()
+    main()
